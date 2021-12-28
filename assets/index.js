@@ -44,7 +44,8 @@ async function setup() {
 
   function onSelectItem(item) {
     const src = item.getAttribute('href');
-    const url = BASE_URL + '/examples/' + src;
+    // const url = BASE_URL + '/examples/' + src;
+    const url = '/examples/' + src;
     frame.setAttribute('src', url);
     fetch(url).then(res => {
       res.text().then(setCodeText);
