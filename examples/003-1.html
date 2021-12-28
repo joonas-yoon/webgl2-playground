@@ -110,19 +110,30 @@ void main() {
           gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
           var positions = [
             0, 0,
+            Math.random(), Math.random(), Math.random(), 1.0,
+
             0, 0.5,
+            0.0, 0.5, 0.7, 1.0,
+
             0.7, 0,
+            0.0, 0.5, 0.7, 1.0,
+
             0.75, 0,
+            0.6, 0.3, 0.0, 1.0,
+
             0, 0.55,
+            0.6, 0.3, 0.0, 1.0,
+
             0.75, 0.55,
+            Math.random(), Math.random(), Math.random(), 1.0,
           ];
           gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
 
           gl.enableVertexAttribArray(positionAttributeLocation);
           var size = 2;          // iteration마다 두개 구성 요소 사용
           var type = gl.FLOAT;   // 데이터는 32비트 부동 소수점
-          var normalize = false; // 데이터를 정규화하지 않음. true인 경우 BYTE는 -128에서 127까지가 아니라 -1에서 1로 바뀜
-          var stride = 0;        // 0인 경우 실행할 때마다 `size * sizeof(type)`만큼 다음 위치로 이동합니다.
+          var normalize = false; // 데이터를 정규화하지 않음
+          var stride = 6 * 4;        // 0인 경우 실행할 때마다 `size * sizeof(type)`만큼 다음 위치로 이동합니다.
           var offset = 0;        // 버퍼의 시작부터 데이터를 읽어옴
           gl.vertexAttribPointer(positionAttributeLocation, size, type, normalize, stride, offset);
           ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -138,14 +149,14 @@ void main() {
             0.6, 0.3, 0.0, 1.0,
             Math.random(), Math.random(), Math.random(), 1.0,
           ];
-          gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
+          gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
 
           gl.enableVertexAttribArray(colorAttributeLocation);
           var size = 4;          // iteration마다 두개 구성 요소 사용
           var type = gl.FLOAT;   // 데이터는 32비트 부동 소수점
           var normalize = false; // 데이터를 정규화하지 않음
-          var stride = 0;        // 0인 경우 실행할 때마다 `size * sizeof(type)`만큼 다음 위치로 이동합니다.
-          var offset = 0;        // 버퍼의 시작부터 데이터를 읽어옴
+          var stride = 6 * 4;        // 0인 경우 실행할 때마다 `size * sizeof(type)`만큼 다음 위치로 이동합니다.
+          var offset = 2 * 4;        // 버퍼의 시작부터 데이터를 읽어옴
           gl.vertexAttribPointer(colorAttributeLocation, size, type, normalize, stride, offset);
           ///////////////////////////////////////////////////////////////////////////////////////////////
 
