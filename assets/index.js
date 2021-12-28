@@ -1,10 +1,12 @@
+const BASE_URL = location.origin + location.pathname;
+
 async function setup() {
   const ul = document.getElementById("toc");
   const frame = document.getElementById("example");
   const code = document.getElementById('code');
   const codeWrapper = code.parentElement;
   const btnCode = document.getElementById('btn-code');
-  const {list} = await fetch('../toc.json').then(res => res.json());
+  const {list} = await fetch(BASE_URL + 'toc.json').then(res => res.json());
   const items = [];
   for (const {title, href} of list) {
     const li = document.createElement('li');
@@ -40,7 +42,7 @@ async function setup() {
 
   function onSelectItem(item) {
     const src = item.getAttribute('href');
-    const url = location.origin + '/examples/' + src;
+    const url = BASE_URL + '/examples/' + src;
     frame.setAttribute('src', url);
     fetch(url).then(res => {
       res.text().then(setCodeText);
