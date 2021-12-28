@@ -3,16 +3,16 @@ html, body {
   padding: 0;
 }
 /* width */
-body::-webkit-scrollbar {
+::-webkit-scrollbar {
   width: 5px;
   height: 5px;
 }
 /* Track */
-body::-webkit-scrollbar-track {
+::-webkit-scrollbar-track {
   background: #f1f1f1;
 }
 /* Handle */
-body::-webkit-scrollbar-thumb {
+::-webkit-scrollbar-thumb {
   background: #ccc;
   border-radius: 2rem;
 }
