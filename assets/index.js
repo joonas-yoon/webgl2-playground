@@ -1,4 +1,5 @@
-const BASE_URL = location.origin + location.pathname;
+const URL = location.origin + location.pathname;
+const BASE_URL = URL.substring(0, URL.lastIndexOf('/')) + '/';
 
 async function setup() {
   const ul = document.getElementById("toc");
