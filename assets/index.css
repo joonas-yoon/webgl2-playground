@@ -82,6 +82,7 @@ iframe#example, .code-wrapper {
   overflow-y: scroll !important;
   z-index: 5;
   border-radius: 0 !important;
+  scroll-behavior: smooth;
 }
 .code-wrapper.show {
   display: block;

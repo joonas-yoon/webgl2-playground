@@ -29,6 +29,7 @@ async function setup() {
 
   function setCodeText(text) {
     code.innerHTML = Prism.highlight(text, Prism.languages.html, 'html');
+    codeWrapper.scroll(0, 0);
   }
 
   function activateItem(item) {
