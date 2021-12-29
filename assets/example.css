@@ -1,0 +1,41 @@
+.btn {
+  border: 1px solid #0e67d1;
+  background-color: #0075ff;
+  color: #fff;
+  border-radius: 3px;
+  padding: 4px 8px;
+  display: inline-block;
+  margin: 5px auto;
+  cursor: pointer;
+}
+.btn:hover {
+  background-color: #0e6ae9;
+}
+.btn:active {
+  background-color: #0e62d2;
+  transform: translateY(1px);
+}
+#hud {
+  position: fixed;
+  right: 0;
+  padding: 1em;
+  text-align: center;
+}
+#hud .slider {
+  display: block;
+}
+#hud .slider .title {
+  display: inline-block;
+  margin-right: 0.5em;
+  text-align: right;
+  width: 100px;
+}
+#hud .slider .value {
+  width: 50px;
+  display: inline-block;
+  text-align: left;
+  margin-left: 0.5em;
+}
+#hud input[type=range] {
+  width: 150px;
+}

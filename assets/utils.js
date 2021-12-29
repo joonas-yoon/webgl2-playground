@@ -77,55 +77,79 @@ const Utils = {
       }
       window.requestAnimationFrame(loop);
     },
+    createElement: function(tag, attributes) {
+      const el = document.createElement(tag);
+      for (const key of Object.keys(attributes || {})) {
+        const val = attributes[key];
+        if (typeof(val) === 'object') {
+          if (key === 'style') {
+            for (const skey of Object.keys(val)) {
+              el.style[skey] = val[skey];
+            }
+          }
+        } else {
+          el.setAttribute(key, val);
+        }
+      }
+      return el;
+    },
     UI: {
       getHUD: function() {
         let hud = document.getElementById('hud');
         if (!hud) {
-          hud = document.createElement('div');
-          hud.setAttribute('id', 'hud');
-          hud.style.position = 'fixed';
-          hud.style.right = '0px';
-          hud.style.padding = '1em';
+          hud = Utils.Browser.createElement('div', {
+            id: 'hud'
+          });
           document.body.appendChild(hud);
         }
         return hud;
       },
-      addSlider: function(name, callback, min, max, step, value) {
-        min = min || 0.0;
-        max = max || 1.0;
-        step = step || 0.001;
-        value = value || 0;
-        const id = 'slider-' + name;
+      addSlider: function(name, callback, attrs) {
+        let min = 0.0, max = 1.0, step = 0.001, value = 0;
+        if (attrs) {
+          min = attrs['min'] || 0.0;
+          max = attrs['max'] || 1.0;
+          step = attrs['step'] || 0.001;
+          value = attrs['value'] || 0;
+        }
         const hud = Utils.Browser.UI.getHUD();
-        const label = document.createElement('label');
-        label.setAttribute('for', id);
-        label.innerText = name;
-        label.style.marginRight = '0.5em';
-        const labelV = document.createElement('label');
-        labelV.innerText = value;
-        labelV.style.width = '50px';
-        labelV.style.display = 'inline-block';
-        labelV.style.marginLeft = '0.5em';
-        const input = document.createElement('input');
-        label.setAttribute('id', id);
-        input.setAttribute('type', 'range');
-        input.setAttribute('min', min);
-        input.setAttribute('max', max);
-        input.setAttribute('step', step);
-        input.setAttribute('value', value);
+        const title = Utils.Browser.createElement('div', {
+          class: 'title'
+        });
+        title.innerText = name;
+        const weight = Utils.Browser.createElement('div', {
+          class: 'value'
+        });
+        weight.innerText = value;
+        const input = Utils.Browser.createElement('input', {
+          type: 'range',
+          min: min,
+          max: max,
+          step: step,
+          value: value,
+        });
         input.addEventListener('input', (evt) => {
           evt.preventDefault();
           input.setAttribute('value', evt.target.value);
-          labelV.innerText = evt.target.value;
+          weight.innerText = evt.target.value;
           callback(Number(evt.target.value));
         });
-        const div = document.createElement('div');
-        div.appendChild(label);
+        const div = Utils.Browser.createElement('div', {
+          class: 'slider'
+        });
+        div.appendChild(title);
         div.appendChild(input);
-        div.appendChild(labelV);
+        div.appendChild(weight);
         hud.appendChild(div);
         return input;
-      }
+      },
+      addButton: function(eventType, callback, attrs) {
+        const button = Utils.Browser.createElement('button', attrs);
+        button.addEventListener(eventType, callback);
+        const hud = Utils.Browser.UI.getHUD();
+        hud.appendChild(button);
+        return button;
+      },
     }
   },
   MATH: {

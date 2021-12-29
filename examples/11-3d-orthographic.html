@@ -9,6 +9,7 @@
     />
     <title>WebGL2</title>
     <link rel="stylesheet" href="../assets/style.css" />
+    <link rel="stylesheet" href="../assets/example.css" />
     <style>
       #canv {
         position: absolute;
@@ -22,16 +23,11 @@
     <script type="text/javascript" src="../assets/utils.js"></script>
     <script type="text/javascript">
         const vertexShaderSource = /* glsl */ `#version 300 es
-// 버텍스 쉐이더로 입력되는 attribute입니다.
-// 버퍼로부터 데이터를 받습니다.
 in vec4 a_position;
 
-// 위치를 변환하는 행렬
 uniform mat4 u_matrix;
 
-// 모든 쉐이더는 main함수를 가지고 있습니다.
 void main() {
-  // 행렬에 위치를 곱합니다.
   gl_Position = u_matrix * a_position;
 }
 `;
@@ -65,7 +61,6 @@ void main() {
 
           // Attributes
           var positionAttributeLocation = gl.getAttribLocation(program, "a_position");
-          var texCoordAttributeLocation = gl.getAttribLocation(program, "a_texCoord");
 
           // Uniforms
           var colorLocation = gl.getUniformLocation(program, "u_color");
@@ -75,40 +70,27 @@ void main() {
           gl.bindVertexArray(vao);
 
           ///////////////////////////////////////////////////////////////////////////////////////////////
-          var positionBuffer = gl.createBuffer();
-          // 좌표 계산
-          gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
           gl.enableVertexAttribArray(positionAttributeLocation);
-          gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
-            // 왼쪽 기둥
-              0,   0,  0,
-             30,   0,  0,
-              0, 150,  0,
-              0, 150,  0,
-             30,   0,  0,
-             30, 150,  0,
-
-            // 위쪽 가로선
-             30,   0,  0,
-            100,   0,  0,
-             30,  30,  0,
-             30,  30,  0,
-            100,   0,  0,
-            100,  30,  0,
-
-            // 가운데 가로선
-             30,  60,  0,
-             67,  60,  0,
-             30,  90,  0,
-             30,  90,  0,
-             67,  60,  0,
-             67,  90,  0]),
-            gl.STATIC_DRAW);
+          var position2DBuffer = gl.createBuffer();
+          // 2d 평면에 그려진 F 좌표 geometry
+          gl.bindBuffer(gl.ARRAY_BUFFER, position2DBuffer);
+          gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(get2DGeometry()), gl.STATIC_DRAW);
           var size = 3;          // iteration마다 3개의 컴포넌트 (x, y, z)
           var type = gl.FLOAT;   // 데이터는 32비트 부동 소수점
           var normalize = false; // 데이터를 정규화하지 않음. true인 경우 BYTE는 -128에서 127까지가 아니라 -1에서 1로 바뀜
           var stride = 0;        // 0인 경우 실행할 때마다 `size * sizeof(type)`만큼 다음 위치로 이동합니다.
           var offset = 0;        // 버퍼의 시작부터 데이터를 읽어옴
+          gl.vertexAttribPointer(positionAttributeLocation, size, type, normalize, stride, offset);
+          ///////////////////////////////////////////////////////////////////////////////////////////////
+          var position3DBuffer = gl.createBuffer();
+          // 3D 평면을 모두 가지고 있는 F geometry
+          gl.bindBuffer(gl.ARRAY_BUFFER, position3DBuffer);
+          gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(get3DGeometry()), gl.STATIC_DRAW);
+          var size = 3;
+          var type = gl.FLOAT;
+          var normalize = false;
+          var stride = 0;
+          var offset = 0;
           gl.vertexAttribPointer(positionAttributeLocation, size, type, normalize, stride, offset);
           ///////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -117,37 +99,55 @@ void main() {
           }
 
           var translation = [canvas.width / 2, canvas.height / 2, 0];
-          var rotation = [degToRad(10), degToRad(45), degToRad(90)];
+          var rotation = [degToRad(325), degToRad(30), degToRad(0)];
           var scale = [1, 1, 1];
           var color = [Math.random(), Math.random(), Math.random(), 1];
 
-          Utils.Browser.UI.addSlider('x', (value) => {
-            translation[0] = value;
-          }, 0, canvas.width, 1, translation[0]);
-          Utils.Browser.UI.addSlider('y', (value) => {
-            translation[1] = value;
-          }, 0, canvas.height, 1, translation[1]);
-          Utils.Browser.UI.addSlider('z', (value) => {
-            translation[2] = value;
-          }, 0, SCREEN_DEPTH, 1, translation[2]);
-          Utils.Browser.UI.addSlider('rotateX', (degree) => {
-            rotation[0] = degToRad(degree);
-          }, 0, 360, 1, 10);
-          Utils.Browser.UI.addSlider('rotateY', (degree) => {
-            rotation[1] = degToRad(degree);
-          }, 0, 360, 1, 45);
-          Utils.Browser.UI.addSlider('rotateZ', (degree) => {
-            rotation[2] = degToRad(degree);
-          }, 0, 360, 1, 90);
-          Utils.Browser.UI.addSlider('scaleX', (value) => {
-            scale[0] = value;
-          }, 0.1, 10, 0.1, 1);
-          Utils.Browser.UI.addSlider('scaleY', (value) => {
-            scale[1] = value;
-          }, 0.1, 10, 0.1, 1);
-          Utils.Browser.UI.addSlider('scaleZ', (value) => {
-            scale[2] = value;
-          }, 0.1, 10, 0.1, 1);
+          // set-up UI
+          Utils.Browser.UI.addSlider('x',
+            (value) => { translation[0] = value; },
+            { max: canvas.width, step: 1, value: translation[0] }
+          );
+          Utils.Browser.UI.addSlider('y',
+            (value) => { translation[1] = value; },
+            { max: canvas.height, step: 1, value: translation[1] }
+          );
+          Utils.Browser.UI.addSlider('z',
+            (value) => { translation[2] = value; },
+            { max: SCREEN_DEPTH, step: 1, value: translation[2] }
+          );
+          Utils.Browser.UI.addSlider('rotateX',
+            (degree) => { rotation[0] = degToRad(degree); },
+            { max: 360, step: 1, value: 325 }
+          );
+          Utils.Browser.UI.addSlider('rotateY',
+            (degree) => { rotation[1] = degToRad(degree); },
+            { max: 360, step: 1, value: 30 }
+          );
+          Utils.Browser.UI.addSlider('rotateZ',
+            (degree) => { rotation[2] = degToRad(degree); },
+            { max: 360, step: 1, value: 0 }
+          );
+          Utils.Browser.UI.addSlider('scaleX',
+            (value) => { scale[0] = value; },
+            { min: 0.1, max: 10, value: 1 }
+          );
+          Utils.Browser.UI.addSlider('scaleY',
+            (value) => { scale[1] = value; },
+            { min: 0.1, max: 10, value: 1 }
+          );
+          Utils.Browser.UI.addSlider('scaleZ',
+            (value) => { scale[2] = value; },
+            { min: 0.1, max: 10, value: 1 }
+          );
+          let showObject2D = true;
+          const button2DTo3D = Utils.Browser.UI.addButton('click', (evt) => {
+              evt.preventDefault();
+              showObject2D = showObject2D !== true;
+              button2DTo3D.innerText = 'Change Geometry ' + (!showObject2D ? '(2D)' : '(3D)');
+            }, { class: 'btn' }
+          );
+          button2DTo3D.innerText = 'Change Geometry (3D)';
 
           // Draw the scene.
           function render(now) {
@@ -174,14 +174,177 @@ void main() {
 
             gl.uniformMatrix4fv(matrixLocation, false, matrix);
 
-            // 좌표 계산
-            gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-
-            gl.drawArrays(gl.TRIANGLES, 0, 18);
+            if (showObject2D) {
+              gl.bindBuffer(gl.ARRAY_BUFFER, position2DBuffer);
+              gl.drawArrays(gl.TRIANGLES, 0, 3 * 6);
+            } else {
+              gl.bindBuffer(gl.ARRAY_BUFFER, position3DBuffer);
+              gl.drawArrays(gl.TRIANGLES, 0, 16 * 6);
+            }
           }
 
           // render loop
           Utils.Browser.requestAnimationFrame(render, true);
+        }
+
+        function get2DGeometry() {
+          return [
+            // 왼쪽 기둥
+              0,   0,  0,
+             30,   0,  0,
+              0, 150,  0,
+              0, 150,  0,
+             30,   0,  0,
+             30, 150,  0,
+
+            // 위쪽 가로선
+             30,   0,  0,
+            100,   0,  0,
+             30,  30,  0,
+             30,  30,  0,
+            100,   0,  0,
+            100,  30,  0,
+
+            // 가운데 가로선
+             30,  60,  0,
+             67,  60,  0,
+             30,  90,  0,
+             30,  90,  0,
+             67,  60,  0,
+             67,  90,  0
+          ];
+        }
+
+        function get3DGeometry() {
+          return [
+            // left column front
+              0,   0,  0,
+            30,   0,  0,
+              0, 150,  0,
+              0, 150,  0,
+            30,   0,  0,
+            30, 150,  0,
+
+            // top rung front
+            30,   0,  0,
+            100,   0,  0,
+            30,  30,  0,
+            30,  30,  0,
+            100,   0,  0,
+            100,  30,  0,
+
+            // middle rung front
+            30,  60,  0,
+            67,  60,  0,
+            30,  90,  0,
+            30,  90,  0,
+            67,  60,  0,
+            67,  90,  0,
+
+            // left column back
+              0,   0,  30,
+            30,   0,  30,
+              0, 150,  30,
+              0, 150,  30,
+            30,   0,  30,
+            30, 150,  30,
+
+            // top rung back
+            30,   0,  30,
+            100,   0,  30,
+            30,  30,  30,
+            30,  30,  30,
+            100,   0,  30,
+            100,  30,  30,
+
+            // middle rung back
+            30,  60,  30,
+            67,  60,  30,
+            30,  90,  30,
+            30,  90,  30,
+            67,  60,  30,
+            67,  90,  30,
+
+            // top
+              0,   0,   0,
+            100,   0,   0,
+            100,   0,  30,
+              0,   0,   0,
+            100,   0,  30,
+              0,   0,  30,
+
+            // top rung right
+            100,   0,   0,
+            100,  30,   0,
+            100,  30,  30,
+            100,   0,   0,
+            100,  30,  30,
+            100,   0,  30,
+
+            // under top rung
+            30,   30,   0,
+            30,   30,  30,
+            100,  30,  30,
+            30,   30,   0,
+            100,  30,  30,
+            100,  30,   0,
+
+            // between top rung and middle
+            30,   30,   0,
+            30,   30,  30,
+            30,   60,  30,
+            30,   30,   0,
+            30,   60,  30,
+            30,   60,   0,
+
+            // top of middle rung
+            30,   60,   0,
+            30,   60,  30,
+            67,   60,  30,
+            30,   60,   0,
+            67,   60,  30,
+            67,   60,   0,
+
+            // right of middle rung
+            67,   60,   0,
+            67,   60,  30,
+            67,   90,  30,
+            67,   60,   0,
+            67,   90,  30,
+            67,   90,   0,
+
+            // bottom of middle rung.
+            30,   90,   0,
+            30,   90,  30,
+            67,   90,  30,
+            30,   90,   0,
+            67,   90,  30,
+            67,   90,   0,
+
+            // right of bottom
+            30,   90,   0,
+            30,   90,  30,
+            30,  150,  30,
+            30,   90,   0,
+            30,  150,  30,
+            30,  150,   0,
+
+            // bottom
+            0,   150,   0,
+            0,   150,  30,
+            30,  150,  30,
+            0,   150,   0,
+            30,  150,  30,
+            30,  150,   0,
+
+            // left side
+            0,   0,   0,
+            0,   0,  30,
+            0, 150,  30,
+            0,   0,   0,
+            0, 150,  30,
+            0, 150,   0,
+          ];
         }
     </script>
   </body>

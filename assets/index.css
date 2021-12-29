@@ -155,3 +155,7 @@ pre[class*=language-]::selection {
     left: 0;
   }
 }
+/* Override PrismJS */
+.language-css .token.string, .style .token.string, .token.entity, .token.operator, .token.url {
+  background: transparent !important;
+}
