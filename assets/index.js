@@ -13,17 +13,23 @@ async function setup() {
   const {list} = await fetch(BASE_URL + 'toc.json').then(res => res.json());
   const items = [];
   let currentIdx = 0;
+  const param = getParam('v');
 
-  for (const {title, href} of list) {
+  for (const index in list) {
+    const {title, href} = list[index];
     const li = document.createElement('li');
     li.setAttribute('class', 'item');
     li.setAttribute('href', href);
+    li.setAttribute('title', title);
     li.addEventListener('click', (evt) => {
       evt.preventDefault();
       onSelectItem(li);
     });
     li.innerText = title;
     ul.appendChild(li);
+    if (param == title) {
+      currentIdx = index;
+    }
     items.push(li);
   }
 
@@ -58,6 +64,11 @@ async function setup() {
       res.text().then(setCodeText);
     });
     activateItem(item);
+    // push history
+    const title = item.getAttribute('title');
+    var refreshURL = window.location.protocol + "//" + window.location.host + window.location.pathname;
+    refreshURL += '?v=' + encodeURI(title);
+    window.history.pushState({ path: refreshURL }, '', refreshURL);
   }
 
   // button to show code or result
@@ -103,6 +114,18 @@ async function setup() {
     } else {
       btnNext.classList.remove('show');
     }
+  }
+
+  function getParam(parameterName) {
+    var result = null, tmp = [];
+    location.search
+        .substr(1)
+        .split("&")
+        .forEach(function (item) {
+          tmp = item.split("=");
+          if (tmp[0] === parameterName) result = decodeURIComponent(tmp[1]);
+        });
+    return result;
   }
 
   // emit first event as default
