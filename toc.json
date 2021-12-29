@@ -35,6 +35,14 @@
     {
       "title": "2D Translation",
       "href": "09-2d-translation.html"
+    },
+    {
+      "title": "2D Rotation",
+      "href": "10-2d-rotation.html"
+    },
+    {
+      "title": "3D Orthographic",
+      "href": "11-3d-orthographic.html"
     }
   ]
 }

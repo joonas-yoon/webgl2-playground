@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta
+        name="viewport"
+        content="width=device-width, minimal-ui, viewport-fit=cover, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no"
+    />
+    <title>WebGL2</title>
+    <link rel="stylesheet" href="../assets/style.css" />
+    <style>
+      #canv {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="canv"></canvas>
+    <script type="text/javascript" src="../assets/utils.js"></script>
+    <script type="text/javascript">
+        const vertexShaderSource = /* glsl */ `#version 300 es
+// 버텍스 쉐이더로 입력되는 attribute입니다.
+// 버퍼로부터 데이터를 받습니다.
+in vec4 a_position;
+
+// 위치를 변환하는 행렬
+uniform mat4 u_matrix;
+
+// 모든 쉐이더는 main함수를 가지고 있습니다.
+void main() {
+  // 행렬에 위치를 곱합니다.
+  gl_Position = u_matrix * a_position;
+}
+`;
+
+        const fragmentShaderSource = /* glsl */ `#version 300 es
+precision highp float;
+
+uniform vec4 u_color;
+
+out vec4 outColor;
+
+void main() {
+  outColor = u_color;
+}
+`;
+
+        const SCREEN_DEPTH = 400;
+
+        {
+          var canvas = document.getElementById("canv");
+          Utils.Browser.resizeCanvasToDisplaySize(canvas);
+          var gl = canvas.getContext("webgl2");
+          if (!gl) {
+            // webgl2를 사용할수 없습니다!
+            alert('Not supported WebGL2');
+          }
+
+          var vertexShader = Utils.GL.createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
+          var fragmentShader = Utils.GL.createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
+          var program = Utils.GL.createProgram(gl, vertexShader, fragmentShader);
+
+          // Attributes
+          var positionAttributeLocation = gl.getAttribLocation(program, "a_position");
+          var texCoordAttributeLocation = gl.getAttribLocation(program, "a_texCoord");
+
+          // Uniforms
+          var colorLocation = gl.getUniformLocation(program, "u_color");
+          var matrixLocation = gl.getUniformLocation(program, "u_matrix");
+
+          var vao = gl.createVertexArray();
+          gl.bindVertexArray(vao);
+
+          ///////////////////////////////////////////////////////////////////////////////////////////////
+          var positionBuffer = gl.createBuffer();
+          // 좌표 계산
+          gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+          gl.enableVertexAttribArray(positionAttributeLocation);
+          gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+            // 왼쪽 기둥
+              0,   0,  0,
+             30,   0,  0,
+              0, 150,  0,
+              0, 150,  0,
+             30,   0,  0,
+             30, 150,  0,
+
+            // 위쪽 가로선
+             30,   0,  0,
+            100,   0,  0,
+             30,  30,  0,
+             30,  30,  0,
+            100,   0,  0,
+            100,  30,  0,
+
+            // 가운데 가로선
+             30,  60,  0,
+             67,  60,  0,
+             30,  90,  0,
+             30,  90,  0,
+             67,  60,  0,
+             67,  90,  0]),
+            gl.STATIC_DRAW);
+          var size = 3;          // iteration마다 3개의 컴포넌트 (x, y, z)
+          var type = gl.FLOAT;   // 데이터는 32비트 부동 소수점
+          var normalize = false; // 데이터를 정규화하지 않음. true인 경우 BYTE는 -128에서 127까지가 아니라 -1에서 1로 바뀜
+          var stride = 0;        // 0인 경우 실행할 때마다 `size * sizeof(type)`만큼 다음 위치로 이동합니다.
+          var offset = 0;        // 버퍼의 시작부터 데이터를 읽어옴
+          gl.vertexAttribPointer(positionAttributeLocation, size, type, normalize, stride, offset);
+          ///////////////////////////////////////////////////////////////////////////////////////////////
+
+          function degToRad(degree) {
+            return degree * Math.PI / 180;
+          }
+
+          var translation = [canvas.width / 2, canvas.height / 2, 0];
+          var rotation = [degToRad(10), degToRad(45), degToRad(90)];
+          var scale = [1, 1, 1];
+          var color = [Math.random(), Math.random(), Math.random(), 1];
+
+          Utils.Browser.UI.addSlider('x', (value) => {
+            translation[0] = value;
+          }, 0, canvas.width, 1, translation[0]);
+          Utils.Browser.UI.addSlider('y', (value) => {
+            translation[1] = value;
+          }, 0, canvas.height, 1, translation[1]);
+          Utils.Browser.UI.addSlider('z', (value) => {
+            translation[2] = value;
+          }, 0, SCREEN_DEPTH, 1, translation[2]);
+          Utils.Browser.UI.addSlider('rotateX', (degree) => {
+            rotation[0] = degToRad(degree);
+          }, 0, 360, 1, 10);
+          Utils.Browser.UI.addSlider('rotateY', (degree) => {
+            rotation[1] = degToRad(degree);
+          }, 0, 360, 1, 45);
+          Utils.Browser.UI.addSlider('rotateZ', (degree) => {
+            rotation[2] = degToRad(degree);
+          }, 0, 360, 1, 90);
+          Utils.Browser.UI.addSlider('scaleX', (value) => {
+            scale[0] = value;
+          }, 0.1, 10, 0.1, 1);
+          Utils.Browser.UI.addSlider('scaleY', (value) => {
+            scale[1] = value;
+          }, 0.1, 10, 0.1, 1);
+          Utils.Browser.UI.addSlider('scaleZ', (value) => {
+            scale[2] = value;
+          }, 0.1, 10, 0.1, 1);
+
+          // Draw the scene.
+          function render(now) {
+            Utils.Browser.resizeCanvasToDisplaySize(gl.canvas);
+            gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+            // 캔버스 지우기
+            gl.clearColor(0, 0, 0, 0);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+
+            gl.useProgram(program);
+
+            gl.bindVertexArray(vao);
+
+            gl.uniform4fv(colorLocation, color);
+
+            const m4 = Utils.MATH.MAT4;
+            let matrix = m4.projection(gl.canvas.clientWidth, gl.canvas.clientHeight, SCREEN_DEPTH);
+            matrix = m4.translate(matrix, translation[0], translation[1], translation[2]);
+            matrix = m4.rotateX(matrix, rotation[0]);
+            matrix = m4.rotateY(matrix, rotation[1]);
+            matrix = m4.rotateZ(matrix, rotation[2]);
+            matrix = m4.scale(matrix, scale[0], scale[1], scale[2]);
+
+            gl.uniformMatrix4fv(matrixLocation, false, matrix);
+
+            // 좌표 계산
+            gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+
+            gl.drawArrays(gl.TRIANGLES, 0, 18);
+          }
+
+          // render loop
+          Utils.Browser.requestAnimationFrame(render, true);
+        }
+    </script>
+  </body>
+</html>
