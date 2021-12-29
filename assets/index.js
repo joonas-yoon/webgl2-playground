@@ -52,7 +52,7 @@ async function setup() {
       return;
     }
     const src = item.getAttribute('href');
-    const url = '/examples/' + src;
+    const url = BASE_URL + '/examples/' + src;
     frame.setAttribute('src', url);
     fetch(url).then(res => {
       res.text().then(setCodeText);
