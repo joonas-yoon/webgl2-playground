@@ -1,21 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
   <head>
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
-    <meta
-        name="viewport"
-        content="width=device-width, minimal-ui, viewport-fit=cover, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no"
-    />
-    <title>WebGL2</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no"/>
     <link rel="stylesheet" href="../assets/style.css" />
-    <style>
-      #canv {
-        position: absolute;
-        width: 100%;
-        height: 100%;
-      }
-    </style>
+    <link rel="stylesheet" href="../assets/example.css" />
   </head>
   <body>
     <canvas id="canv"></canvas>
@@ -158,7 +148,7 @@ void main() {
             const radian = degree * Math.PI / 180;
             rotation[0] = Math.sin(radian);
             rotation[1] = Math.cos(radian);
-          }, 0, 360, 1);
+          }, { max: 360, step: 1 });
 
           // Draw the scene.
           function render(now) {

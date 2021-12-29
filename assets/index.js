@@ -69,6 +69,8 @@ async function setup() {
     var refreshURL = window.location.protocol + "//" + window.location.host + window.location.pathname;
     refreshURL += '?v=' + encodeURI(title);
     window.history.pushState({ path: refreshURL }, '', refreshURL);
+    // change title
+    document.title = 'WebGL2 - ' + title;
   }
 
   // button to show code or result
