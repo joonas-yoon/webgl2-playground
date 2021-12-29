@@ -92,12 +92,13 @@ async function setup() {
   });
 
   function refreshArrowButton() {
-    if (currentIdx - 1 >= 0) {
+    const idx = currentIdx || 0;
+    if (idx - 1 >= 0) {
       btnPrev.classList.add('show');
     } else {
       btnPrev.classList.remove('show');
     }
-    if (currentIdx + 1 < items.length) {
+    if (idx + 1 < items.length) {
       btnNext.classList.add('show');
     } else {
       btnNext.classList.remove('show');
