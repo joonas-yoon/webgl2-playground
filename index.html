@@ -23,7 +23,18 @@
   <body onload="setup()">
     <div class="sidebar">
       <h1 class="header">Examples</h1>
-      <ul id="toc"></ul>
+      <ul id="toc">
+        <li id="btn-prev" class="prev">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
+            <path d="M16.67 0l2.83 2.829-9.339 9.175 9.339 9.167-2.83 2.829-12.17-11.996z"/>
+          </svg>
+        </li>
+        <li id="btn-next" class="next">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
+            <path d="M7.33 24l-2.83-2.829 9.339-9.175-9.339-9.167 2.83-2.829 12.17 11.996z"></path>
+          </svg>
+        </li>
+      </ul>
       <div class="buttons">
         <button id="btn-code" class="btn btn-block" data-show-result="true">View code</button>
       </div>

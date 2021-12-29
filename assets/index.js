@@ -7,8 +7,13 @@ async function setup() {
   const code = document.getElementById('code');
   const codeWrapper = code.parentElement;
   const btnCode = document.getElementById('btn-code');
+  const btnPrev = document.getElementById('btn-prev');
+  const btnNext = document.getElementById('btn-next');
+
   const {list} = await fetch(BASE_URL + 'toc.json').then(res => res.json());
   const items = [];
+  let currentIdx = 0;
+
   for (const {title, href} of list) {
     const li = document.createElement('li');
     li.setAttribute('class', 'item');
@@ -43,8 +48,10 @@ async function setup() {
   }
 
   function onSelectItem(item) {
+    if (item.className.indexOf('active') !== -1) {
+      return;
+    }
     const src = item.getAttribute('href');
-    // const url = BASE_URL + '/examples/' + src;
     const url = '/examples/' + src;
     frame.setAttribute('src', url);
     fetch(url).then(res => {
@@ -66,6 +73,38 @@ async function setup() {
     btnCode.innerText = showCode ? "View result" : "View code";
   });
 
+  btnPrev.addEventListener('click', (evt) => {
+    evt.preventDefault();
+    if (currentIdx - 1 >= 0) {
+      currentIdx = currentIdx - 1;
+      onSelectItem(items[currentIdx]);
+      refreshArrowButton();
+    }
+  });
+
+  btnNext.addEventListener('click', (evt) => {
+    evt.preventDefault();
+    if (currentIdx + 1 < items.length) {
+      currentIdx = currentIdx + 1;
+      onSelectItem(items[currentIdx]);
+      refreshArrowButton();
+    }
+  });
+
+  function refreshArrowButton() {
+    if (currentIdx - 1 >= 0) {
+      btnPrev.classList.add('show');
+    } else {
+      btnPrev.classList.remove('show');
+    }
+    if (currentIdx + 1 < items.length) {
+      btnNext.classList.add('show');
+    } else {
+      btnNext.classList.remove('show');
+    }
+  }
+
   // emit first event as default
-  onSelectItem(items[0]);
+  onSelectItem(items[currentIdx]);
+  refreshArrowButton();
 }

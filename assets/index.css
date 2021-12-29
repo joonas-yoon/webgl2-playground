@@ -37,9 +37,15 @@ iframe#example, .code-wrapper {
   padding: 0;
   margin: 0;
 }
-#toc li.item {
+#toc li {
   list-style: none;
   margin: 0;
+}
+#toc li.next, #toc li.prev {
+  display: none;
+  cursor: pointer;
+}
+#toc li.item {
   cursor: pointer;
   padding: 0.65em 1em 0.65em 1.75em;
   transition: text-shadow 150ms ease-in-out;
@@ -78,8 +84,7 @@ iframe#example, .code-wrapper {
   margin: 0 !important;
   width: calc(100% - 280px - 6em) !important;
   height: calc(100% - 4em) !important;
-  overflow-x: hidden !important;
-  overflow-y: scroll !important;
+  overflow: auto !important;
   z-index: 5;
   border-radius: 0 !important;
   scroll-behavior: smooth;
@@ -99,4 +104,54 @@ pre[class*=language-] ::selection,
 pre[class*=language-]::selection {
   color: #fff;
   background: #218159 !important;
+}
+@media (max-width: 768px) {
+  iframe#example, .code-wrapper {
+    width: 100%;
+    left: 0;
+  }
+  .code-wrapper {
+    width: calc(100% - 6em) !important;
+  }
+  .sidebar {
+    position: fixed;
+    top: auto;
+    bottom: 0px;
+    width: 100%;
+    height: fit-content;
+    z-index: 10;
+  }
+  .sidebar .header {
+    display: none;
+  }
+  .sidebar .buttons {
+    position: relative;
+  }
+  #toc {
+    padding: 0;
+    margin: 0;
+    box-shadow: 0 0 1em rgba(0, 0, 0, 0.15);
+  }
+  #toc .item:not(.active) {
+    display: none;
+  }
+  #toc .item {
+    text-align: center;
+  }
+  #toc li.next, #toc li.prev {
+    display: block;
+    position: absolute;
+    padding: 12px;
+    color: #000;
+    font-size: 1em;
+  }
+  #toc li.next.show, #toc li.prev.show {
+    display: block;
+  }
+  #toc li.next {
+    right: 0;
+  }
+  #toc li.prev {
+    left: 0;
+  }
 }
