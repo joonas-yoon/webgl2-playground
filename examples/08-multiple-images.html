@@ -56,10 +56,10 @@ void main() {
           Utils.Browser.loadImages([
             "../assets/texture001.png",
             "../assets/texture002.png",
-            ], render);
+            ], setup);
         }
 
-        function render(images) {
+        function setup(images) {
           var canvas = document.getElementById("canv");
           Utils.Browser.resizeCanvasToDisplaySize(canvas);
           var gl = canvas.getContext("webgl2");
@@ -147,10 +147,10 @@ void main() {
           }
           ///////////////////////////////////////////////////////////////////////////////////////////////
 
-          Utils.Browser.requestAnimationFrame(drawScene);
+          Utils.Browser.requestAnimationFrame(render, true);
 
           // Draw the scene.
-          function drawScene(now) {
+          function render(now) {
             Utils.Browser.resizeCanvasToDisplaySize(gl.canvas);
             gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 

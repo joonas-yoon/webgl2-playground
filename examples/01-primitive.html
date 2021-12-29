@@ -127,10 +127,10 @@ void main() {
           var offset = 0;        // 버퍼의 시작부터 데이터를 읽어옴
           gl.vertexAttribPointer(positionAttributeLocation, size, type, normalize, stride, offset);
 
-          requestAnimationFrame(drawScene);
+          requestAnimationFrame(render);
 
           // Draw the scene.
-          function drawScene(now) {
+          function render(now) {
             resizeCanvasToDisplaySize(gl.canvas);
             gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
@@ -147,7 +147,7 @@ void main() {
             var count = 3;
             gl.drawArrays(primitiveType, offset, count);
 
-            requestAnimationFrame(drawScene);
+            requestAnimationFrame(render);
           }
         }
     </script>

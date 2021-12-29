@@ -19,6 +19,7 @@
   </head>
   <body>
     <canvas id="canv"></canvas>
+    <script type="text/javascript" src="../assets/utils.js"></script>
     <script type="text/javascript">
         const vertexShaderSource = /* glsl */ `#version 300 es
 in vec4 a_position;
@@ -51,96 +52,25 @@ void main() {
 }
 `;
 
-        function createShader(gl, type, source) {
-          var shader = gl.createShader(type);
-          gl.shaderSource(shader, source);
-          gl.compileShader(shader);
-          var success = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
-          if (success) return shader;
-
-          console.log(gl.getShaderInfoLog(shader));
-          gl.deleteShader(shader);
-        }
-
-        function createProgram(gl, vertexShader, fragmentShader) {
-          var program = gl.createProgram();
-          gl.attachShader(program, vertexShader);
-          gl.attachShader(program, fragmentShader);
-          gl.linkProgram(program);
-          var success = gl.getProgramParameter(program, gl.LINK_STATUS);
-          if (success) {
-            return program;
-          }
-
-          console.log(gl.getProgramInfoLog(program));
-          gl.deleteProgram(program);
-        }
-
-        function resizeCanvasToDisplaySize(canvas) {
-          // 브라우저가 캔버스를 표시하고 있는 크기를 CSS 픽셀 단위로 얻어옵니다.
-          const displayWidth  = canvas.clientWidth;
-          const displayHeight = canvas.clientHeight;
-
-          // 캔버스와 크기가 다른지 확인합니다.
-          const needResize = canvas.width  !== displayWidth ||
-                            canvas.height !== displayHeight;
-
-          if (needResize) {
-            // 캔버스를 동일한 크기가 되도록 합니다.
-            canvas.width  = displayWidth;
-            canvas.height = displayHeight;
-          }
-
-          return needResize;
-        }
-
-        function loadImage(url, callback) {
-          var image = new Image();
-          image.src = url;
-          image.onload = () => callback(image);
-          return image;
-        }
-
-        function loadImages(urls, callback) {
-          var images = [];
-          var imagesToLoad = urls.length;
-
-          // 이미지 로딩이 완료될 때마다 호출됩니다.
-          var onImageLoad = function() {
-            --imagesToLoad;
-            // 모든 이미지 로딩이 완료되면 콜백을 호출합니다.
-            if (imagesToLoad === 0) {
-              callback(images);
-            }
-          };
-
-          for (var ii = 0; ii < imagesToLoad; ++ii) {
-            var image = loadImage(urls[ii], onImageLoad);
-            images.push(image);
-          }
-
-          return images;
-        }
-
         {
-          loadImages([
+          Utils.Browser.loadImages([
             "../assets/texture001.png",
             "../assets/texture002.png",
-            ], render);
+            ], setup);
         }
 
-        function render(images) {
+        function setup(images) {
           var canvas = document.getElementById("canv");
-          resizeCanvasToDisplaySize(canvas);
+          Utils.Browser.resizeCanvasToDisplaySize(canvas);
           var gl = canvas.getContext("webgl2");
           if (!gl) {
             // webgl2를 사용할수 없습니다!
             alert('Not supported WebGL2');
           }
 
-          var vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
-          var fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
-          var program = createProgram(gl, vertexShader, fragmentShader);
+          var vertexShader = Utils.GL.createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
+          var fragmentShader = Utils.GL.createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
+          var program = Utils.GL.createProgram(gl, vertexShader, fragmentShader);
 
           var positionAttributeLocation = gl.getAttribLocation(program, "a_position");
           var texCoordAttributeLocation = gl.getAttribLocation(program, "a_texCoord");
@@ -217,11 +147,17 @@ void main() {
           }
           ///////////////////////////////////////////////////////////////////////////////////////////////
 
-          requestAnimationFrame(drawScene);
+          const translate = [0, 0];
+          const sliderX = Utils.Browser.UI.addSlider('x', (value) => {
+            translate[0] = value;
+          });
+          const sliderY = Utils.Browser.UI.addSlider('y', (value) => {
+            translate[1] = value;
+          });
 
           // Draw the scene.
-          function drawScene(now) {
-            resizeCanvasToDisplaySize(gl.canvas);
+          function render(now) {
+            Utils.Browser.resizeCanvasToDisplaySize(gl.canvas);
             gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
             // 캔버스 지우기
@@ -242,24 +178,34 @@ void main() {
 
             // 좌표 계산
             gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-            setImage(gl, images[0]);
+            setImage(gl, images[0], translate[0], translate[1]);
 
             gl.drawArrays(gl.TRIANGLES, 0, 6);
-
-            requestAnimationFrame(drawScene);
           }
+
+          // render loop
+          Utils.Browser.requestAnimationFrame(render, true);
         }
 
-        function setImage(gl, image) {
-          var x = 0, y = 0, canvas = gl.canvas;
-          var width = image.width / canvas.width;
-          var height = image.height / canvas.height;
-          var toClipspace = (p, r) => p / r * 2.0 - 1.0;
-          var x1 = toClipspace(x, canvas.width);
-          var x2 = toClipspace(x + image.width, canvas.width);
-          var y1 = toClipspace(y, canvas.height);
-          var y2 = toClipspace(y + image.height, canvas.height);
-          var positions = [
+        // x, y는 [0, 1] 범위
+        function setImage(gl, image, x, y) {
+          const canvas = gl.canvas;
+          const width = image.width / canvas.width;
+          const height = image.height / canvas.height;
+          const toClipspace = (p, r) => p / r * 2.0 - 1.0;
+          // // (방법 1) x = [0, 1] 을 픽셀 공간으로 변환해서 더하고, 픽셀 단위를 다시 클립 공간으로 변환
+          // const pixelX = x * canvas.width;
+          // const pixelY = y * canvas.height;
+          // const x1 = toClipspace(pixelX, canvas.width);
+          // const x2 = toClipspace(pixelX + image.width, canvas.width);
+          // const y1 = toClipspace(pixelY, canvas.height);
+          // const y2 = toClipspace(pixelY + image.height, canvas.height);
+          // (방법 2) 클립 공간 [-1, 1]에 offset으로 추가
+          const x1 = x * 2.0 + toClipspace(0, canvas.width);
+          const x2 = x * 2.0 + toClipspace(0 + image.width, canvas.width);
+          const y1 = y * 2.0 + toClipspace(0, canvas.height);
+          const y2 = y * 2.0 + toClipspace(0 + image.height, canvas.height);
+          const positions = [
               x1, y1,
               x2, y1,
               x1, y2,

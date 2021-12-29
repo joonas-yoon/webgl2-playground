@@ -149,10 +149,10 @@ void main() {
           gl.vertexAttribPointer(colorAttributeLocation, size, type, normalize, stride, offset);
           ///////////////////////////////////////////////////////////////////////////////////////////////
 
-          requestAnimationFrame(drawScene);
+          requestAnimationFrame(render);
 
           // Draw the scene.
-          function drawScene(now) {
+          function render(now) {
             resizeCanvasToDisplaySize(gl.canvas);
             gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
@@ -180,7 +180,7 @@ void main() {
 
             gl.drawArrays(gl.TRIANGLES, 0, 6);
 
-            // requestAnimationFrame(drawScene);
+            // requestAnimationFrame(render);
           }
         }
     </script>

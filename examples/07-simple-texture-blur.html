@@ -108,11 +108,11 @@ void main() {
           var image = new Image();
           image.src = "../assets/texture002.png";  // 반드시 같은 도메인 이어야 합니다!!!
           image.onload = function() {
-            render(image);
+            setup(image);
           }
         }
 
-        function render(image) {
+        function setup(image) {
           var canvas = document.getElementById("canv");
           resizeCanvasToDisplaySize(canvas);
           var gl = canvas.getContext("webgl2");
@@ -194,10 +194,10 @@ void main() {
                         image);
           ///////////////////////////////////////////////////////////////////////////////////////////////
 
-          requestAnimationFrame(drawScene);
+          requestAnimationFrame(render);
 
           // Draw the scene.
-          function drawScene(now) {
+          function render(now) {
             resizeCanvasToDisplaySize(gl.canvas);
             gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
@@ -218,7 +218,7 @@ void main() {
 
             gl.drawArrays(gl.TRIANGLES, 0, 6);
 
-            requestAnimationFrame(drawScene);
+            requestAnimationFrame(render);
           }
         }
 
