@@ -31,6 +31,10 @@
     {
       "title": "Multiple Textures",
       "href": "08-multiple-images.html"
+    },
+    {
+      "title": "2D Translation",
+      "href": "09-2d-translation.html"
     }
   ]
 }
