@@ -10,7 +10,7 @@
   border-radius: 3px;
   padding: 4px 8px;
   display: inline-block;
-  margin: 5px auto;
+  margin: 0 auto;
   cursor: pointer;
 }
 .btn:hover {
@@ -43,4 +43,7 @@
 }
 #hud input[type=range] {
   width: 150px;
+}
+#hud .button {
+  margin-top: 5px;
 }

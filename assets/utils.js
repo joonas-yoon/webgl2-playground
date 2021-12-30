@@ -146,8 +146,12 @@ const Utils = {
       addButton: function(eventType, callback, attrs) {
         const button = Utils.Browser.createElement('button', attrs);
         button.addEventListener(eventType, callback);
+        const wrapper = Utils.Browser.createElement('div', {
+          class: 'button'
+        });
+        wrapper.appendChild(button);
         const hud = Utils.Browser.UI.getHUD();
-        hud.appendChild(button);
+        hud.appendChild(wrapper);
         return button;
       },
     }
