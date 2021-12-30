@@ -14,23 +14,27 @@
     <script type="text/javascript">
         const vertexShaderSource = /* glsl */ `#version 300 es
 in vec4 a_position;
+in vec4 a_color;
 
 uniform mat4 u_matrix;
 
+out vec4 v_color;
+
 void main() {
   gl_Position = u_matrix * a_position;
+  v_color = a_color;
 }
 `;
 
         const fragmentShaderSource = /* glsl */ `#version 300 es
 precision highp float;
 
-uniform vec4 u_color;
+in vec4 v_color;
 
 out vec4 outColor;
 
 void main() {
-  outColor = u_color;
+  outColor = v_color;
 }
 `;
 
@@ -51,16 +55,19 @@ void main() {
 
           // Attributes
           var positionAttributeLocation = gl.getAttribLocation(program, "a_position");
+          var colorAttributeLocation = gl.getAttribLocation(program, "a_color");
 
           // Uniforms
-          var colorLocation = gl.getUniformLocation(program, "u_color");
           var matrixLocation = gl.getUniformLocation(program, "u_matrix");
 
           var vao = gl.createVertexArray();
           gl.bindVertexArray(vao);
 
-          ///////////////////////////////////////////////////////////////////////////////////////////////
+          // enable
           gl.enableVertexAttribArray(positionAttributeLocation);
+          gl.enableVertexAttribArray(colorAttributeLocation);
+          
+          ///////////////////////////////////////////////////////////////////////////////////////////////
           var position2DBuffer = gl.createBuffer();
           // 2d 평면에 그려진 F 좌표 geometry
           gl.bindBuffer(gl.ARRAY_BUFFER, position2DBuffer);
@@ -83,6 +90,21 @@ void main() {
           var offset = 0;
           gl.vertexAttribPointer(positionAttributeLocation, size, type, normalize, stride, offset);
           ///////////////////////////////////////////////////////////////////////////////////////////////
+          var colorBuffer = gl.createBuffer();
+          // 각 면에 적용될 색상
+          gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+          gl.bufferData(gl.ARRAY_BUFFER, new Uint8Array(getColors()), gl.STATIC_DRAW);
+          var size = 3;
+          var type = gl.UNSIGNED_BYTE;  // 범위는 255로 사용
+          var normalize = true;         // [0, 255] 를 [0.0, 1.0] 으로 정규화하여 읽음
+          var stride = 0;
+          var offset = 0;
+          gl.vertexAttribPointer(colorAttributeLocation, size, type, normalize, stride, offset);
+          ///////////////////////////////////////////////////////////////////////////////////////////////
+          // Depth Test
+          gl.enable(gl.DEPTH_TEST);
+          gl.depthFunc(gl.LESS);
+          ///////////////////////////////////////////////////////////////////////////////////////////////
 
           function degToRad(degree) {
             return degree * Math.PI / 180;
@@ -92,6 +114,7 @@ void main() {
           var rotation = [degToRad(325), degToRad(30), degToRad(0)];
           var scale = [1, 1, 1];
           var color = [Math.random(), Math.random(), Math.random(), 1];
+          let showObject2D = true;
 
           // set-up UI
           Utils.Browser.UI.addSlider('x',
@@ -130,7 +153,6 @@ void main() {
             (value) => { scale[2] = value; },
             { min: 0.1, max: 10, value: 1 }
           );
-          let showObject2D = true;
           const button2DTo3D = Utils.Browser.UI.addButton('click', (evt) => {
               evt.preventDefault();
               showObject2D = showObject2D !== true;
@@ -152,8 +174,6 @@ void main() {
 
             gl.bindVertexArray(vao);
 
-            gl.uniform4fv(colorLocation, color);
-
             const m4 = Utils.MATH.MAT4;
             let matrix = m4.projection(gl.canvas.clientWidth, gl.canvas.clientHeight, SCREEN_DEPTH);
             matrix = m4.translate(matrix, translation[0], translation[1], translation[2]);
@@ -165,10 +185,17 @@ void main() {
             gl.uniformMatrix4fv(matrixLocation, false, matrix);
 
             if (showObject2D) {
+              // vertices
               gl.bindBuffer(gl.ARRAY_BUFFER, position2DBuffer);
               gl.drawArrays(gl.TRIANGLES, 0, 3 * 6);
+              // colors
+              gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+              gl.drawArrays(gl.TRIANGLES, 0, 3 * 6);
             } else {
+              // vertices
               gl.bindBuffer(gl.ARRAY_BUFFER, position3DBuffer);
+              gl.drawArrays(gl.TRIANGLES, 0, 16 * 6);
+              gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
               gl.drawArrays(gl.TRIANGLES, 0, 16 * 6);
             }
           }
@@ -334,6 +361,144 @@ void main() {
             0,   0,   0,
             0, 150,  30,
             0, 150,   0,
+          ];
+        }
+
+        function getColors() {
+          const r = parseInt(Math.random() * 255);
+          const g = parseInt(Math.random() * 255);
+          const b = parseInt(Math.random() * 255);
+          const r2 = parseInt(Math.random() * 255);
+          const g2 = parseInt(Math.random() * 255);
+          const b2 = parseInt(Math.random() * 255);
+          return [
+            // left column front
+            r, g, b,
+            r, g, b,
+            r, g, b,
+            r, g, b,
+            r, g, b,
+            r, g, b,
+
+            // top rung front
+            r, g, b,
+            r, g, b,
+            r, g, b,
+            r, g, b,
+            r, g, b,
+            r, g, b,
+
+            // middle rung front
+            r, g, b,
+            r, g, b,
+            r, g, b,
+            r, g, b,
+            r, g, b,
+            r, g, b,
+
+            // left column back
+            g, b, r,
+            g, b, r,
+            g, b, r,
+            g, b, r,
+            g, b, r,
+            g, b, r,
+
+            // top rung back
+            g, b, r,
+            g, b, r,
+            g, b, r,
+            g, b, r,
+            g, b, r,
+            g, b, r,
+
+            // middle rung back
+            g, b, r,
+            g, b, r,
+            g, b, r,
+            g, b, r,
+            g, b, r,
+            g, b, r,
+
+            // top
+            r, b, g,
+            r, b, g,
+            r, b, g,
+            r, b, g,
+            r, b, g,
+            r, b, g,
+
+            // top rung right
+            b, r, g,
+            b, r, g,
+            b, r, g,
+            b, r, g,
+            b, r, g,
+            b, r, g,
+
+            // under top rung
+            b, g, r,
+            b, g, r,
+            b, g, r,
+            b, g, r,
+            b, g, r,
+            b, g, r,
+
+            // between top rung and middle
+            r2, g2, b2,
+            r2, g2, b2,
+            r2, g2, b2,
+            r2, g2, b2,
+            r2, g2, b2,
+            r2, g2, b2,
+
+            // top of middle rung
+            r2, b2, g2,
+            r2, b2, g2,
+            r2, b2, g2,
+            r2, b2, g2,
+            r2, b2, g2,
+            r2, b2, g2,
+
+            // right of middle rung
+            b2, r, g2,
+            b2, r, g2,
+            b2, r, g2,
+            b2, r, g2,
+            b2, r, g2,
+            b2, r, g2,
+
+            // bottom of middle rung.
+            r2, g, b2,
+            r2, g, b2,
+            r2, g, b2,
+            r2, g, b2,
+            r2, g, b2,
+            r2, g, b2,
+
+            // right of bottom
+            r2, g2, b,
+            r2, g2, b,
+            r2, g2, b,
+            r2, g2, b,
+            r2, g2, b,
+            r2, g2, b,
+
+            // bottom
+            g2, r, b2,
+            g2, r, b2,
+            g2, r, b2,
+            g2, r, b2,
+            g2, r, b2,
+            g2, r, b2,
+
+            // left side
+            r, g2, b,
+            r, g2, b,
+            r, g2, b,
+            r, g2, b,
+            r, g2, b,
+            r, g2, b,
           ];
         }
     </script>
