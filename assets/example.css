@@ -25,6 +25,7 @@
   right: 0;
   padding: 1em;
   text-align: center;
+  text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff;
 }
 #hud .slider {
   display: block;
