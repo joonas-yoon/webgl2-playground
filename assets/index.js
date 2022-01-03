@@ -14,8 +14,9 @@ async function setup() {
   const items = [];
   let currentIdx = 0;
   const param = getParam('v');
-
-  for (const index in list) {
+  
+  for (let index in list) {
+    index = Number(index);
     const {title, href} = list[index];
     const li = document.createElement('li');
     li.setAttribute('class', 'item');
