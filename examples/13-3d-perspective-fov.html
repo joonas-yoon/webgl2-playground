@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no"/>
+    <title>WebGL2</title>
+    <link rel="stylesheet" href="../assets/style.css" />
+    <link rel="stylesheet" href="../assets/example.css" />
+  </head>
+  <body>
+    <canvas id="canv"></canvas>
+    <script type="text/javascript" src="../assets/utils.js"></script>
+    <script type="text/javascript">
+        const vertexShaderSource = /* glsl */ `#version 300 es
+in vec4 a_position;
+in vec4 a_color;
+
+uniform mat4 u_matrix;
+
+out vec4 v_color;
+
+void main() {
+  gl_Position = u_matrix * a_position;
+  v_color = a_color;
+}
+`;
+
+        const fragmentShaderSource = /* glsl */ `#version 300 es
+precision highp float;
+
+in vec4 v_color;
+
+out vec4 outColor;
+
+void main() {
+  outColor = v_color;
+}
+`;
+
+        const SCREEN_DEPTH = 400;
+
+        {
+          var canvas = document.getElementById("canv");
+          Utils.Browser.resizeCanvasToDisplaySize(canvas);
+          var gl = canvas.getContext("webgl2");
+          if (!gl) {
+            // webgl2를 사용할수 없습니다!
+            alert('Not supported WebGL2');
+          }
+
+          var vertexShader = Utils.GL.createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
+          var fragmentShader = Utils.GL.createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
+          var program = Utils.GL.createProgram(gl, vertexShader, fragmentShader);
+
+          // Attributes
+          var positionAttributeLocation = gl.getAttribLocation(program, "a_position");
+          var colorAttributeLocation = gl.getAttribLocation(program, "a_color");
+          
+          // Uniforms
+          var matrixLocation = gl.getUniformLocation(program, "u_matrix");
+
+          var vao = gl.createVertexArray();
+          gl.bindVertexArray(vao);
+
+          // enable
+          gl.enableVertexAttribArray(positionAttributeLocation);
+          gl.enableVertexAttribArray(colorAttributeLocation);
+          
+          ///////////////////////////////////////////////////////////////////////////////////////////////
+          var position3DBuffer = gl.createBuffer();
+          // 3D 평면을 모두 가지고 있는 F geometry
+          gl.bindBuffer(gl.ARRAY_BUFFER, position3DBuffer);
+          gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(get3DGeometry()), gl.STATIC_DRAW);
+          var size = 3;
+          var type = gl.FLOAT;
+          var normalize = false;
+          var stride = 0;
+          var offset = 0;
+          gl.vertexAttribPointer(positionAttributeLocation, size, type, normalize, stride, offset);
+          ///////////////////////////////////////////////////////////////////////////////////////////////
+          var colorBuffer = gl.createBuffer();
+          // 각 면에 적용될 색상
+          gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+          gl.bufferData(gl.ARRAY_BUFFER, new Uint8Array(getColors()), gl.STATIC_DRAW);
+          var size = 3;
+          var type = gl.UNSIGNED_BYTE;  // 범위는 255로 사용
+          var normalize = true;         // [0, 255] 를 [0.0, 1.0] 으로 정규화하여 읽음
+          var stride = 0;
+          var offset = 0;
+          gl.vertexAttribPointer(colorAttributeLocation, size, type, normalize, stride, offset);
+          ///////////////////////////////////////////////////////////////////////////////////////////////
+
+          function degToRad(degree) {
+            return degree * Math.PI / 180;
+          }
+
+          var translation = [-150, 0, -360];
+          var rotation = [degToRad(190), degToRad(40), degToRad(30)];
+          var scale = [1, 1, 1];
+          var color = [Math.random(), Math.random(), Math.random(), 1];
+          var fov = 60;
+
+          // set-up UI
+          Utils.Browser.UI.addSlider('x',
+            (value) => { translation[0] = value; },
+            { min: -200, max: 200, step: 1, value: translation[0] }
+          );
+          Utils.Browser.UI.addSlider('y',
+            (value) => { translation[1] = value; },
+            { min: -200, max: 200, step: 1, value: translation[1] }
+          );
+          Utils.Browser.UI.addSlider('z',
+            (value) => { translation[2] = value; },
+            { min: -1000, max: 0, step: 1, value: translation[2] }
+          );
+          Utils.Browser.UI.addSlider('rotateX',
+            (degree) => { rotation[0] = degToRad(degree); },
+            { max: 360, step: 1, value: 190 }
+          );
+          Utils.Browser.UI.addSlider('rotateY',
+            (degree) => { rotation[1] = degToRad(degree); },
+            { max: 360, step: 1, value: 40 }
+          );
+          Utils.Browser.UI.addSlider('rotateZ',
+            (degree) => { rotation[2] = degToRad(degree); },
+            { max: 360, step: 1, value: 30 }
+          );
+          Utils.Browser.UI.addSlider('scaleX',
+            (value) => { scale[0] = value; },
+            { min: 0.1, max: 10, value: 1 }
+          );
+          Utils.Browser.UI.addSlider('scaleY',
+            (value) => { scale[1] = value; },
+            { min: 0.1, max: 10, value: 1 }
+          );
+          Utils.Browser.UI.addSlider('scaleZ',
+            (value) => { scale[2] = value; },
+            { min: 0.1, max: 10, value: 1 }
+          );
+          Utils.Browser.UI.addSlider('Field of View',
+            (value) => { fov = value; },
+            { min: 1, max: 180, step: 1 }
+          );
+
+          // Draw the scene.
+          function render(now) {
+            Utils.Browser.resizeCanvasToDisplaySize(gl.canvas);
+            gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+            gl.clearColor(0, 0, 0, 0);
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+            // Depth Test
+            gl.enable(gl.DEPTH_TEST);
+            gl.depthFunc(gl.LESS);
+            // Cull Face
+            gl.enable(gl.CULL_FACE);
+
+            gl.useProgram(program);
+
+            gl.bindVertexArray(vao);
+
+            var aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
+            var zNear = 1;
+            var zFar = 2000;
+            const m4 = Utils.MATH.MAT4;
+            var matrix = m4.perspective(degToRad(fov), aspect, zNear, zFar);
+            matrix = m4.translate(matrix, translation[0], translation[1], translation[2]);
+            matrix = m4.rotateX(matrix, rotation[0]);
+            matrix = m4.rotateY(matrix, rotation[1]);
+            matrix = m4.rotateZ(matrix, rotation[2]);
+            matrix = m4.scale(matrix, scale[0], scale[1], scale[2]);
+
+            gl.uniformMatrix4fv(matrixLocation, false, matrix);
+
+            // vertices
+            gl.drawArrays(gl.TRIANGLES, 0, 16 * 6);
+          }
+
+          // render loop
+          Utils.Browser.requestAnimationFrame(render, true);
+        }
+
+        function get3DGeometry() {
+          return [
+            // left column front
+            0,   0,  0,
+            0, 150,  0,
+            30,   0,  0,
+            0, 150,  0,
+            30, 150,  0,
+            30,   0,  0,
+
+            // top rung front
+            30,   0,  0,
+            30,  30,  0,
+            100,   0,  0,
+            30,  30,  0,
+            100,  30,  0,
+            100,   0,  0,
+
+            // middle rung front
+            30,  60,  0,
+            30,  90,  0,
+            67,  60,  0,
+            30,  90,  0,
+            67,  90,  0,
+            67,  60,  0,
+
+            // left column back
+              0,   0,  30,
+            30,   0,  30,
+              0, 150,  30,
+              0, 150,  30,
+            30,   0,  30,
+            30, 150,  30,
+
+            // top rung back
+            30,   0,  30,
+            100,   0,  30,
+            30,  30,  30,
+            30,  30,  30,
+            100,   0,  30,
+            100,  30,  30,
+
+            // middle rung back
+            30,  60,  30,
+            67,  60,  30,
+            30,  90,  30,
+            30,  90,  30,
+            67,  60,  30,
+            67,  90,  30,
+
+            // top
+              0,   0,   0,
+            100,   0,   0,
+            100,   0,  30,
+              0,   0,   0,
+            100,   0,  30,
+              0,   0,  30,
+
+            // top rung right
+            100,   0,   0,
+            100,  30,   0,
+            100,  30,  30,
+            100,   0,   0,
+            100,  30,  30,
+            100,   0,  30,
+
+            // under top rung
+            30,   30,   0,
+            30,   30,  30,
+            100,  30,  30,
+            30,   30,   0,
+            100,  30,  30,
+            100,  30,   0,
+
+            // between top rung and middle
+            30,   30,   0,
+            30,   60,  30,
+            30,   30,  30,
+            30,   30,   0,
+            30,   60,   0,
+            30,   60,  30,
+
+            // top of middle rung
+            30,   60,   0,
+            67,   60,  30,
+            30,   60,  30,
+            30,   60,   0,
+            67,   60,   0,
+            67,   60,  30,
+
+            // right of middle rung
+            67,   60,   0,
+            67,   90,  30,
+            67,   60,  30,
+            67,   60,   0,
+            67,   90,   0,
+            67,   90,  30,
+
+            // bottom of middle rung.
+            30,   90,   0,
+            30,   90,  30,
+            67,   90,  30,
+            30,   90,   0,
+            67,   90,  30,
+            67,   90,   0,
+
+            // right of bottom
+            30,   90,   0,
+            30,  150,  30,
+            30,   90,  30,
+            30,   90,   0,
+            30,  150,   0,
+            30,  150,  30,
+
+            // bottom
+            0,   150,   0,
+            0,   150,  30,
+            30,  150,  30,
+            0,   150,   0,
+            30,  150,  30,
+            30,  150,   0,
+
+            // left side
+            0,   0,   0,
+            0,   0,  30,
+            0, 150,  30,
+            0,   0,   0,
+            0, 150,  30,
+            0, 150,   0,
+          ];
+        }
+
+        function getColors() {
+          const r = parseInt(Math.random() * 255);
+          const g = parseInt(Math.random() * 255);
+          const b = parseInt(Math.random() * 255);
+          const r2 = parseInt(Math.random() * 255);
+          const g2 = parseInt(Math.random() * 255);
+          const b2 = parseInt(Math.random() * 255);
+          return [
+            // left column front
+            r, g, b,
+            r, g, b,
+            r, g, b,
+            r, g, b,
+            r, g, b,
+            r, g, b,
+
+            // top rung front
+            r, g, b,
+            r, g, b,
+            r, g, b,
+            r, g, b,
+            r, g, b,
+            r, g, b,
+
+            // middle rung front
+            r, g, b,
+            r, g, b,
+            r, g, b,
+            r, g, b,
+            r, g, b,
+            r, g, b,
+
+            // left column back
+            g, b, r,
+            g, b, r,
+            g, b, r,
+            g, b, r,
+            g, b, r,
+            g, b, r,
+
+            // top rung back
+            g, b, r,
+            g, b, r,
+            g, b, r,
+            g, b, r,
+            g, b, r,
+            g, b, r,
+
+            // middle rung back
+            g, b, r,
+            g, b, r,
+            g, b, r,
+            g, b, r,
+            g, b, r,
+            g, b, r,
+
+            // top
+            r, b, g,
+            r, b, g,
+            r, b, g,
+            r, b, g,
+            r, b, g,
+            r, b, g,
+
+            // top rung right
+            b, r, g,
+            b, r, g,
+            b, r, g,
+            b, r, g,
+            b, r, g,
+            b, r, g,
+
+            // under top rung
+            b, g, r,
+            b, g, r,
+            b, g, r,
+            b, g, r,
+            b, g, r,
+            b, g, r,
+
+            // between top rung and middle
+            r2, g2, b2,
+            r2, g2, b2,
+            r2, g2, b2,
+            r2, g2, b2,
+            r2, g2, b2,
+            r2, g2, b2,
+
+            // top of middle rung
+            r2, b2, g2,
+            r2, b2, g2,
+            r2, b2, g2,
+            r2, b2, g2,
+            r2, b2, g2,
+            r2, b2, g2,
+
+            // right of middle rung
+            b2, r, g2,
+            b2, r, g2,
+            b2, r, g2,
+            b2, r, g2,
+            b2, r, g2,
+            b2, r, g2,
+
+            // bottom of middle rung.
+            r2, g, b2,
+            r2, g, b2,
+            r2, g, b2,
+            r2, g, b2,
+            r2, g, b2,
+            r2, g, b2,
+
+            // right of bottom
+            r2, g2, b,
+            r2, g2, b,
+            r2, g2, b,
+            r2, g2, b,
+            r2, g2, b,
+            r2, g2, b,
+
+            // bottom
+            g2, r, b2,
+            g2, r, b2,
+            g2, r, b2,
+            g2, r, b2,
+            g2, r, b2,
+            g2, r, b2,
+
+            // left side
+            r, g2, b,
+            r, g2, b,
+            r, g2, b,
+            r, g2, b,
+            r, g2, b,
+            r, g2, b,
+          ];
+        }
+    </script>
+  </body>
+</html>

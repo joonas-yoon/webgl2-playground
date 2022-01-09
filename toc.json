@@ -43,6 +43,14 @@
     {
       "title": "3D Orthographic",
       "href": "11-3d-orthographic.html"
+    },
+    {
+      "title": "3D Perspective (Fudge factor)",
+      "href": "12-3d-perspective.html"
+    },
+    {
+      "title": "3D Perspective (FOV)",
+      "href": "13-3d-perspective-fov.html"
     }
   ]
 }
