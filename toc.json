@@ -51,6 +51,10 @@
     {
       "title": "3D Perspective (FOV)",
       "href": "13-3d-perspective-fov.html"
+    },
+    {
+      "title": "Camera",
+      "href": "14-camera.html"
     }
   ]
 }
