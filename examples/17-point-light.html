@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no"/>
+    <title>WebGL2</title>
+    <link rel="stylesheet" href="../assets/style.css" />
+    <link rel="stylesheet" href="../assets/example.css" />
+  </head>
+  <body>
+    <canvas id="canv"></canvas>
+    <script type="text/javascript" src="../assets/utils.js"></script>
+    <script type="text/javascript">
+        const vertexShaderSource = /* glsl */ `#version 300 es
+in vec4 a_position;
+in vec3 a_normal;
+
+// point light의 world 위치
+uniform vec3 u_lightWorldPosition;
+
+uniform mat4 u_world;
+uniform mat4 u_worldViewProjection;
+uniform mat4 u_worldInverseTranspose;
+
+out vec3 v_normal;
+out vec3 v_surfaceToLight;
+
+void main() {
+  gl_Position = u_worldViewProjection * a_position;
+
+  v_normal = mat3(u_worldInverseTranspose) * a_normal;
+
+  // 표면의 월드 공간상 위치를 계산합니다.
+  vec3 surfaceWorldPosition = (u_world * a_position).xyz;
+
+  // 표면에서 조명을 향하는 벡터를 계산하고 프래그먼트 셰이더로 전달합니다.
+  v_surfaceToLight = u_lightWorldPosition - surfaceWorldPosition;
+}
+`;
+
+        const fragmentShaderSource = /* glsl */ `#version 300 es
+precision highp float;
+
+in vec3 v_normal;
+in vec3 v_surfaceToLight;
+
+uniform vec4 u_color;
+
+out vec4 outColor;
+
+void main() {
+  // varying으로 넘어왔기 때문에 단위 벡터가 아닐 수 있습니다.
+  // 정규화를 통해 다시 단위 벡터로 만들어 줍니다.
+  vec3 normal = normalize(v_normal);
+
+  vec3 surfaceToLightDirection = normalize(v_surfaceToLight);
+
+  float light = dot(normal, surfaceToLightDirection);
+
+  outColor = vec4(vec3(0.3, 0.6, 0.5) * light, 1.0);
+}
+`;
+
+        {
+          var canvas = document.getElementById("canv");
+          Utils.Browser.resizeCanvasToDisplaySize(canvas);
+          var gl = canvas.getContext("webgl2");
+          if (!gl) {
+            // webgl2를 사용할수 없습니다!
+            alert('Not supported WebGL2');
+          }
+
+          var vertexShader = Utils.GL.createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
+          var fragmentShader = Utils.GL.createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
+          var program = Utils.GL.createProgram(gl, vertexShader, fragmentShader);
+
+          // Attributes
+          var positionAttributeLocation = gl.getAttribLocation(program, "a_position");
+          var normalAttributeLocation = gl.getAttribLocation(program, "a_normal");
+
+          // Uniforms
+          var lightWorldPositionLocation = gl.getUniformLocation(program, "u_lightWorldPosition");
+          var worldLocation = gl.getUniformLocation(program, "u_world");
+          var worldViewProjectionLocation = gl.getUniformLocation(program, "u_worldViewProjection");
+          var worldInverseTransposeLocation = gl.getUniformLocation(program, "u_worldInverseTranspose");
+
+          var vao = gl.createVertexArray();
+          gl.bindVertexArray(vao);
+
+          // enable
+          gl.enableVertexAttribArray(positionAttributeLocation);
+          gl.enableVertexAttribArray(normalAttributeLocation);
+
+          ///////////////////////////////////////////////////////////////////////////////////////////////
+          var positionBuffer = gl.createBuffer();
+          // 3D 평면을 모두 가지고 있는 F geometry
+          gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+          gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(getPositions()), gl.STATIC_DRAW);
+          var size = 3;
+          var type = gl.FLOAT;
+          var normalize = false;
+          var stride = 0;
+          var offset = 0;
+          gl.vertexAttribPointer(positionAttributeLocation, size, type, normalize, stride, offset);
+          ///////////////////////////////////////////////////////////////////////////////////////////////
+          var normalBuffer = gl.createBuffer();
+          // 각 면에 적용될 normal 벡터
+          gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
+          gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(getNormals()), gl.STATIC_DRAW);
+          gl.vertexAttribPointer(normalAttributeLocation, 3, gl.FLOAT, false, 0, 0);
+          ///////////////////////////////////////////////////////////////////////////////////////////////
+
+          function degToRad(degree) {
+            return degree * Math.PI / 180;
+          }
+
+          // variables
+          var rotationRadians = degToRad(0);
+          var fieldOfViewRadians = degToRad(60);
+          var numberOfFs = 50;
+          const up = [0, 1, 0];
+          const groupPosition = [150, -150, 0];
+          const lightPosition = [40, 60, 120];
+
+          // UI
+          Utils.Browser.UI.addSlider('angle',
+            (value) => { rotationRadians = degToRad(value); },
+            { max: 360 }
+          );
+          Utils.Browser.UI.addSlider('x',
+            (value) => { groupPosition[0] = value; },
+            { min: -1000, max: 1000, value: groupPosition[0] }
+          );
+          Utils.Browser.UI.addSlider('y',
+            (value) => { groupPosition[1] = value; },
+            { min: -1000, max: 1000, value: groupPosition[1] }
+          );
+          Utils.Browser.UI.addSlider('z',
+            (value) => { groupPosition[2] = value; },
+            { min: -1000, max: 1000, value: groupPosition[2] }
+          );
+
+          // Draw the scene.
+          function render(now) {
+            Utils.Browser.resizeCanvasToDisplaySize(gl.canvas);
+            gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+            gl.clearColor(0, 0, 0, 0);
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+            // Depth Test
+            gl.enable(gl.DEPTH_TEST);
+            gl.depthFunc(gl.LESS);
+            // Cull Face
+            gl.enable(gl.CULL_FACE);
+
+            gl.useProgram(program);
+
+            gl.bindVertexArray(vao);
+
+            var aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
+            var zNear = 1;
+            var zFar = 2000;
+            const m3 = Utils.MATH.MAT3;
+            const m4 = Utils.MATH.MAT4;
+            var projectionMatrix = m4.perspective(fieldOfViewRadians, aspect, zNear, zFar);
+
+            // Compute the camera's matrix
+            var cameraPosition = [100, 150, 200];
+            var targetPosition = [0, 0, 0];
+            var up = [0, 1, 0];
+            var cameraMatrix = m4.lookAt(cameraPosition, targetPosition, up);
+
+            // Make a view matrix from the camera matrix.
+            var viewMatrix = m4.inverse(cameraMatrix);
+
+            // create a viewProjection matrix. This will both apply perspective
+            // AND move the world so that the camera is effectively the origin
+            var viewProjectionMatrix = m4.multiply(projectionMatrix, viewMatrix);
+
+            for (let i = 0; i < 5; ++i) {
+              for (let j = 0; j < 5; ++j) {
+                // Draw a F at the origin with rotation
+                const R = m4.rotationY(rotationRadians);
+                const T = m4.translation(
+                  groupPosition[0] - j * 150,
+                  groupPosition[1],
+                  groupPosition[2] - i * 150
+                );
+                var worldMatrix = m4.multiply(T, R);
+                var worldViewProjectionMatrix = m4.multiply(viewProjectionMatrix, worldMatrix);
+                var worldInverseMatrix = m4.inverse(worldMatrix);
+                var worldInverseTransposeMatrix = m4.transpose(worldInverseMatrix);
+
+                // Set the matrices
+                gl.uniformMatrix4fv(worldLocation, false, worldMatrix);
+                gl.uniformMatrix4fv(worldViewProjectionLocation, false, worldViewProjectionMatrix);
+                gl.uniformMatrix4fv(worldInverseTransposeLocation, false, worldInverseTransposeMatrix);
+
+                // set the light position
+                gl.uniform3fv(lightWorldPositionLocation, lightPosition);
+
+                // Draw the geometry.
+                gl.drawArrays(gl.TRIANGLES, 0, 16 * 6);
+              }
+            }
+          }
+
+          // render loop
+          Utils.Browser.requestAnimationFrame(render, true);
+        }
+
+        function getPositions() {
+          return [
+            -50, 75, 15,
+            -50, -75, 15,
+            -20, 75, 15,
+            -50, -75, 15,
+            -20, -75, 15,
+            -20, 75, 15,
+
+            -20, 75, 15,
+            -20, 45, 15,
+            50, 75, 15,
+            -20, 45, 15,
+            50, 45, 15,
+            50, 75, 15,
+
+            -20, 15, 15,
+            -20, -15, 15,
+            17, 15, 15,
+            -20, -15, 15,
+            17, -15, 15,
+            17, 15, 15,
+
+            -50, 75, -15,
+            -20, 75, -15,
+            -50, -75, -15,
+            -50, -75, -15,
+            -20, 75, -15,
+            -20, -75, -15,
+
+            -20, 75, -15,
+            50, 75, -15,
+            -20, 45, -15,
+            -20, 45, -15,
+            50, 75, -15,
+            50, 45, -15,
+
+            -20, 15, -15,
+            17, 15, -15,
+            -20, -15, -15,
+            -20, -15, -15,
+            17, 15, -15,
+            17, -15, -15,
+
+            -50, 75, 15,
+            50, 75, 15,
+            50, 75, -15,
+            -50, 75, 15,
+            50, 75, -15,
+            -50, 75, -15,
+
+            50, 75, 15,
+            50, 45, 15,
+            50, 45, -15,
+            50, 75, 15,
+            50, 45, -15,
+            50, 75, -15,
+
+            -20, 45, 15,
+            -20, 45, -15,
+            50, 45, -15,
+            -20, 45, 15,
+            50, 45, -15,
+            50, 45, 15,
+
+            -20, 45, 15,
+            -20, 15, -15,
+            -20, 45, -15,
+            -20, 45, 15,
+            -20, 15, 15,
+            -20, 15, -15,
+
+            -20, 15, 15,
+            17, 15, -15,
+            -20, 15, -15,
+            -20, 15, 15,
+            17, 15, 15,
+            17, 15, -15,
+
+            17, 15, 15,
+            17, -15, -15,
+            17, 15, -15,
+            17, 15, 15,
+            17, -15, 15,
+            17, -15, -15,
+
+            -20, -15, 15,
+            -20, -15, -15,
+            17, -15, -15,
+            -20, -15, 15,
+            17, -15, -15,
+            17, -15, 15,
+
+            -20, -15, 15,
+            -20, -75, -15,
+            -20, -15, -15,
+            -20, -15, 15,
+            -20, -75, 15,
+            -20, -75, -15,
+
+            -50, -75, 15,
+            -50, -75, -15,
+            -20, -75, -15,
+            -50, -75, 15,
+            -20, -75, -15,
+            -20, -75, 15,
+
+            -50, 75, 15,
+            -50, 75, -15,
+            -50, -75, -15,
+            -50, 75, 15,
+            -50, -75, -15,
+            -50, -75, 15,
+          ];
+        }
+
+        function getNormals() {
+          return [
+            // left column front
+            0, 0, 1,
+            0, 0, 1,
+            0, 0, 1,
+            0, 0, 1,
+            0, 0, 1,
+            0, 0, 1,
+
+            // top rung front
+            0, 0, 1,
+            0, 0, 1,
+            0, 0, 1,
+            0, 0, 1,
+            0, 0, 1,
+            0, 0, 1,
+
+            // middle rung front
+            0, 0, 1,
+            0, 0, 1,
+            0, 0, 1,
+            0, 0, 1,
+            0, 0, 1,
+            0, 0, 1,
+
+            // left column back
+            0, 0, -1,
+            0, 0, -1,
+            0, 0, -1,
+            0, 0, -1,
+            0, 0, -1,
+            0, 0, -1,
+
+            // top rung back
+            0, 0, -1,
+            0, 0, -1,
+            0, 0, -1,
+            0, 0, -1,
+            0, 0, -1,
+            0, 0, -1,
+
+            // middle rung back
+            0, 0, -1,
+            0, 0, -1,
+            0, 0, -1,
+            0, 0, -1,
+            0, 0, -1,
+            0, 0, -1,
+
+            // top
+            0, 1, 0,
+            0, 1, 0,
+            0, 1, 0,
+            0, 1, 0,
+            0, 1, 0,
+            0, 1, 0,
+
+            // top rung right
+            1, 0, 0,
+            1, 0, 0,
+            1, 0, 0,
+            1, 0, 0,
+            1, 0, 0,
+            1, 0, 0,
+
+            // under top rung
+            0, -1, 0,
+            0, -1, 0,
+            0, -1, 0,
+            0, -1, 0,
+            0, -1, 0,
+            0, -1, 0,
+
+            // between top rung and middle
+            1, 0, 0,
+            1, 0, 0,
+            1, 0, 0,
+            1, 0, 0,
+            1, 0, 0,
+            1, 0, 0,
+
+            // top of middle rung
+            0, 1, 0,
+            0, 1, 0,
+            0, 1, 0,
+            0, 1, 0,
+            0, 1, 0,
+            0, 1, 0,
+
+            // right of middle rung
+            1, 0, 0,
+            1, 0, 0,
+            1, 0, 0,
+            1, 0, 0,
+            1, 0, 0,
+            1, 0, 0,
+
+            // bottom of middle rung.
+            0, -1, 0,
+            0, -1, 0,
+            0, -1, 0,
+            0, -1, 0,
+            0, -1, 0,
+            0, -1, 0,
+
+            // right of bottom
+            1, 0, 0,
+            1, 0, 0,
+            1, 0, 0,
+            1, 0, 0,
+            1, 0, 0,
+            1, 0, 0,
+
+            // bottom
+            0, -1, 0,
+            0, -1, 0,
+            0, -1, 0,
+            0, -1, 0,
+            0, -1, 0,
+            0, -1, 0,
+
+            // left side
+            -1, 0, 0,
+            -1, 0, 0,
+            -1, 0, 0,
+            -1, 0, 0,
+            -1, 0, 0,
+            -1, 0, 0,
+          ];
+        }
+    </script>
+  </body>
+</html>

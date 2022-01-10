@@ -59,6 +59,14 @@
     {
       "title": "Look At",
       "href": "15-look-at.html"
+    },
+    {
+      "title": "Directional Light",
+      "href": "16-directional-light.html"
+    },
+    {
+      "title": "Point Light",
+      "href": "17-point-light.html"
     }
   ]
 }

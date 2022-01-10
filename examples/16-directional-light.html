@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no"/>
+    <title>WebGL2</title>
+    <link rel="stylesheet" href="../assets/style.css" />
+    <link rel="stylesheet" href="../assets/example.css" />
+  </head>
+  <body>
+    <canvas id="canv"></canvas>
+    <script type="text/javascript" src="../assets/utils.js"></script>
+    <script type="text/javascript">
+        const vertexShaderSource = /* glsl */ `#version 300 es
+in vec4 a_position;
+in vec3 a_normal;
+
+uniform mat4 u_worldViewProjection;
+uniform mat4 u_worldInverseTranspose;
+
+out vec3 v_normal;
+
+void main() {
+  gl_Position = u_worldViewProjection * a_position;
+  // 법선의 방향을 바꾸어 프래그먼트 셰이더로 전달합니다.
+  // normal은 방향 벡터이기 때문에 이동 없이 그냥 곱하면 된다.
+  v_normal = mat3(u_worldInverseTranspose) * a_normal;
+}
+`;
+
+        const fragmentShaderSource = /* glsl */ `#version 300 es
+precision highp float;
+
+in vec3 v_normal;
+
+uniform vec3 u_reverseLightDirection;
+uniform vec4 u_color;
+
+out vec4 outColor;
+
+void main() {
+  // varying으로 넘어왔기 때문에 단위 벡터가 아닐 수 있습니다.
+  // 정규화를 통해 다시 단위 벡터로 만들어 줍니다.
+  vec3 normal = normalize(v_normal);
+
+  // normal과 뒤집어진 빛의 방향을 내적해서 빛의 세기를 계산합니다.
+  float light = dot(normal, u_reverseLightDirection);
+
+  outColor = vec4(vec3(0.3, 0.6, 0.5) * light, 1.0);
+}
+`;
+
+        {
+          var canvas = document.getElementById("canv");
+          Utils.Browser.resizeCanvasToDisplaySize(canvas);
+          var gl = canvas.getContext("webgl2");
+          if (!gl) {
+            // webgl2를 사용할수 없습니다!
+            alert('Not supported WebGL2');
+          }
+
+          var vertexShader = Utils.GL.createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
+          var fragmentShader = Utils.GL.createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
+          var program = Utils.GL.createProgram(gl, vertexShader, fragmentShader);
+
+          // Attributes
+          var positionAttributeLocation = gl.getAttribLocation(program, "a_position");
+          var normalAttributeLocation = gl.getAttribLocation(program, "a_normal");
+
+          // Uniforms
+          var worldViewProjectionLocation = gl.getUniformLocation(program, "u_worldViewProjection");
+          var worldInverseTransposeLocation = gl.getUniformLocation(program, "u_worldInverseTranspose");
+          var reverseLightDirectionLocation = gl.getUniformLocation(program, "u_reverseLightDirection");
+
+          var vao = gl.createVertexArray();
+          gl.bindVertexArray(vao);
+
+          // enable
+          gl.enableVertexAttribArray(positionAttributeLocation);
+          gl.enableVertexAttribArray(normalAttributeLocation);
+
+          ///////////////////////////////////////////////////////////////////////////////////////////////
+          var positionBuffer = gl.createBuffer();
+          // 3D 평면을 모두 가지고 있는 F geometry
+          gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+          gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(getPositions()), gl.STATIC_DRAW);
+          var size = 3;
+          var type = gl.FLOAT;
+          var normalize = false;
+          var stride = 0;
+          var offset = 0;
+          gl.vertexAttribPointer(positionAttributeLocation, size, type, normalize, stride, offset);
+          ///////////////////////////////////////////////////////////////////////////////////////////////
+          var normalBuffer = gl.createBuffer();
+          // 각 면에 적용될 normal 벡터
+          gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
+          gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(getNormals()), gl.STATIC_DRAW);
+          gl.vertexAttribPointer(normalAttributeLocation, 3, gl.FLOAT, false, 0, 0);
+          ///////////////////////////////////////////////////////////////////////////////////////////////
+
+          function degToRad(degree) {
+            return degree * Math.PI / 180;
+          }
+
+          // variables
+          var fieldOfViewRadians = degToRad(90);
+          var numberOfFs = 50;
+
+          // Draw the scene.
+          function render(now) {
+            Utils.Browser.resizeCanvasToDisplaySize(gl.canvas);
+            gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+            gl.clearColor(0, 0, 0, 0);
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+            // Depth Test
+            gl.enable(gl.DEPTH_TEST);
+            gl.depthFunc(gl.LESS);
+            // Cull Face
+            gl.enable(gl.CULL_FACE);
+
+            gl.useProgram(program);
+
+            gl.bindVertexArray(vao);
+
+            var aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
+            var zNear = 1;
+            var zFar = 2000;
+            const m3 = Utils.MATH.MAT3;
+            const m4 = Utils.MATH.MAT4;
+            var projectionMatrix = m4.perspective(fieldOfViewRadians, aspect, zNear, zFar);
+
+            var cameraTarget = [0, -100, 0];
+            var cameraPosition = [300, 200, 300];
+            var up = [0, 1, 0];
+
+            // Directional Light
+            const lightDirection = m3.subtract(cameraPosition, cameraTarget);
+
+            // 카메라가 보는 방향 행렬 계산
+            var cameraMatrix = m4.lookAt(cameraPosition, cameraTarget, up);
+
+            // 카메라 행렬로부터 뷰(view) 행렬 계산
+            var viewMatrix = m4.inverse(cameraMatrix);
+
+            // 투영 동산을 뷰 공간(카메라 앞의 공간)으로 변환 (VP Matrix)
+            var viewProjectionMatrix = m4.multiply(projectionMatrix, viewMatrix);
+
+            // 아래에 'F'를 배치
+            const rows = parseInt(Math.sqrt(numberOfFs));
+            const gutter = 200;
+            for (var i = 0; i < rows; ++i) {
+              // F 개수 보정
+              let cols = parseInt(numberOfFs / rows);
+              for (var j = 0; j < cols; ++j) {
+                 // 카메라가 보는 곳을 중심으로 F를 사각형으로 배치
+                var x = cameraTarget[0] + i * gutter - (rows * gutter / 2);
+                var y = cameraTarget[1];
+                var z = cameraTarget[2] + j * gutter - (cols * gutter / 2);
+
+                // F를 위한 이동 행렬 추가
+                const factor = now / 10; // + (i * rows + j) * 2;
+                const R = m4.rotationY(degToRad(factor));
+                const T = m4.translation(x, y, z);
+                const world = m4.multiply(T, R); // TRS 순서대로, Scale->Rotate->Translate
+                const worldViewProjectionMatrix = m4.multiply(viewProjectionMatrix, world);
+                var worldInverseMatrix = m4.inverse(world);
+                var worldInverseTransposeMatrix = m4.transpose(worldInverseMatrix);
+
+                gl.uniformMatrix4fv(worldViewProjectionLocation, false, worldViewProjectionMatrix);
+                gl.uniformMatrix4fv(worldInverseTransposeLocation, false, worldInverseTransposeMatrix);
+
+                // 옮겨진 F를 기준으로 조명 방향 설정
+                gl.uniform3fv(reverseLightDirectionLocation, m3.normalize(lightDirection));
+
+                // vertices
+                gl.drawArrays(gl.TRIANGLES, 0, 16 * 6);
+              }
+            }
+          }
+
+          // render loop
+          Utils.Browser.requestAnimationFrame(render, true);
+        }
+
+        function getPositions() {
+          return [
+            -50, 75, 15,
+            -50, -75, 15,
+            -20, 75, 15,
+            -50, -75, 15,
+            -20, -75, 15,
+            -20, 75, 15,
+
+            -20, 75, 15,
+            -20, 45, 15,
+            50, 75, 15,
+            -20, 45, 15,
+            50, 45, 15,
+            50, 75, 15,
+
+            -20, 15, 15,
+            -20, -15, 15,
+            17, 15, 15,
+            -20, -15, 15,
+            17, -15, 15,
+            17, 15, 15,
+
+            -50, 75, -15,
+            -20, 75, -15,
+            -50, -75, -15,
+            -50, -75, -15,
+            -20, 75, -15,
+            -20, -75, -15,
+
+            -20, 75, -15,
+            50, 75, -15,
+            -20, 45, -15,
+            -20, 45, -15,
+            50, 75, -15,
+            50, 45, -15,
+
+            -20, 15, -15,
+            17, 15, -15,
+            -20, -15, -15,
+            -20, -15, -15,
+            17, 15, -15,
+            17, -15, -15,
+
+            -50, 75, 15,
+            50, 75, 15,
+            50, 75, -15,
+            -50, 75, 15,
+            50, 75, -15,
+            -50, 75, -15,
+
+            50, 75, 15,
+            50, 45, 15,
+            50, 45, -15,
+            50, 75, 15,
+            50, 45, -15,
+            50, 75, -15,
+
+            -20, 45, 15,
+            -20, 45, -15,
+            50, 45, -15,
+            -20, 45, 15,
+            50, 45, -15,
+            50, 45, 15,
+
+            -20, 45, 15,
+            -20, 15, -15,
+            -20, 45, -15,
+            -20, 45, 15,
+            -20, 15, 15,
+            -20, 15, -15,
+
+            -20, 15, 15,
+            17, 15, -15,
+            -20, 15, -15,
+            -20, 15, 15,
+            17, 15, 15,
+            17, 15, -15,
+
+            17, 15, 15,
+            17, -15, -15,
+            17, 15, -15,
+            17, 15, 15,
+            17, -15, 15,
+            17, -15, -15,
+
+            -20, -15, 15,
+            -20, -15, -15,
+            17, -15, -15,
+            -20, -15, 15,
+            17, -15, -15,
+            17, -15, 15,
+
+            -20, -15, 15,
+            -20, -75, -15,
+            -20, -15, -15,
+            -20, -15, 15,
+            -20, -75, 15,
+            -20, -75, -15,
+
+            -50, -75, 15,
+            -50, -75, -15,
+            -20, -75, -15,
+            -50, -75, 15,
+            -20, -75, -15,
+            -20, -75, 15,
+
+            -50, 75, 15,
+            -50, 75, -15,
+            -50, -75, -15,
+            -50, 75, 15,
+            -50, -75, -15,
+            -50, -75, 15,
+          ];
+        }
+
+        function getNormals(gl) {
+          return [
+            // 왼쪽 기둥의 앞면
+            0, 0, 1,
+            0, 0, 1,
+            0, 0, 1,
+            0, 0, 1,
+            0, 0, 1,
+            0, 0, 1,
+
+            // 위쪽 가로줄의 앞면
+            0, 0, 1,
+            0, 0, 1,
+            0, 0, 1,
+            0, 0, 1,
+            0, 0, 1,
+            0, 0, 1,
+
+            // 중간 가로줄의 앞면
+            0, 0, 1,
+            0, 0, 1,
+            0, 0, 1,
+            0, 0, 1,
+            0, 0, 1,
+            0, 0, 1,
+
+            // 왼쪽 기둥의 뒷면
+            0, 0, -1,
+            0, 0, -1,
+            0, 0, -1,
+            0, 0, -1,
+            0, 0, -1,
+            0, 0, -1,
+
+            // 위쪽 가로줄의 뒷면
+            0, 0, -1,
+            0, 0, -1,
+            0, 0, -1,
+            0, 0, -1,
+            0, 0, -1,
+            0, 0, -1,
+
+            // 중간 가로줄의 뒷면
+            0, 0, -1,
+            0, 0, -1,
+            0, 0, -1,
+            0, 0, -1,
+            0, 0, -1,
+            0, 0, -1,
+
+            // 윗면
+            0, 1, 0,
+            0, 1, 0,
+            0, 1, 0,
+            0, 1, 0,
+            0, 1, 0,
+            0, 1, 0,
+
+            // 위쪽 가로줄의 오른쪽면
+            1, 0, 0,
+            1, 0, 0,
+            1, 0, 0,
+            1, 0, 0,
+            1, 0, 0,
+            1, 0, 0,
+
+            // 위쪽 가로줄의 아랫면
+            0, -1, 0,
+            0, -1, 0,
+            0, -1, 0,
+            0, -1, 0,
+            0, -1, 0,
+            0, -1, 0,
+
+            // 위쪽과 중간 가로줄의 사이면
+            1, 0, 0,
+            1, 0, 0,
+            1, 0, 0,
+            1, 0, 0,
+            1, 0, 0,
+            1, 0, 0,
+
+            // 중간 가로줄의 윗면
+            0, 1, 0,
+            0, 1, 0,
+            0, 1, 0,
+            0, 1, 0,
+            0, 1, 0,
+            0, 1, 0,
+
+            // 중간 가로줄의 오른쪽면
+            1, 0, 0,
+            1, 0, 0,
+            1, 0, 0,
+            1, 0, 0,
+            1, 0, 0,
+            1, 0, 0,
+
+            // 중간 가로줄의 아랫면.
+            0, -1, 0,
+            0, -1, 0,
+            0, -1, 0,
+            0, -1, 0,
+            0, -1, 0,
+            0, -1, 0,
+
+            // 아래쪽의 오른쪽면
+            1, 0, 0,
+            1, 0, 0,
+            1, 0, 0,
+            1, 0, 0,
+            1, 0, 0,
+            1, 0, 0,
+
+            // 아래쪽면
+            0, -1, 0,
+            0, -1, 0,
+            0, -1, 0,
+            0, -1, 0,
+            0, -1, 0,
+            0, -1, 0,
+
+            // 왼쪽면
+            -1, 0, 0,
+            -1, 0, 0,
+            -1, 0, 0,
+            -1, 0, 0,
+            -1, 0, 0,
+            -1, 0, 0,
+          ];
+        }
+    </script>
+  </body>
+</html>

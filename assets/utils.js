@@ -158,6 +158,29 @@ const Utils = {
   },
   MATH: {
     MAT3: {
+      add: function(a, b) {
+        return [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
+      },
+      subtract: function(a, b) {
+        return [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+      },
+      // 벡터 외적
+      cross: function(a, b) {
+        return [
+          a[1] * b[2] - a[2] * b[1],
+          a[2] * b[0] - a[0] * b[2],
+          a[0] * b[1] - a[1] * b[0],
+        ];
+      },
+      normalize: function(v) {
+        var length = Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+        // make sure we don't divide by 0.
+        if (length > 0.00001) {
+          return [v[0] / length, v[1] / length, v[2] / length];
+        } else {
+          return [0, 0, 0];
+        }
+      },
       translation: function(tx, ty) {
         return [
           1, 0, 0,
@@ -183,6 +206,12 @@ const Utils = {
       },
     },
     MAT4: {
+      IDENTITY: [
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1,
+      ],
       translation: function(tx, ty, tz) {
         return [
           1,  0,  0,  0,
@@ -377,31 +406,31 @@ const Utils = {
                (tmp_20 * m12 + tmp_23 * m22 + tmp_17 * m02)),
         ];
       },
-      // 벡터 외적
-      cross: function(a, b) {
-        return [
-          a[1] * b[2] - a[2] * b[1],
-          a[2] * b[0] - a[0] * b[2],
-          a[0] * b[1] - a[1] * b[0],
-        ];
-      },
-      subtractVectors: function(a, b) {
-        return [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
-      },
-      normalize: function(v) {
-        var length = Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
-        // make sure we don't divide by 0.
-        if (length > 0.00001) {
-          return [v[0] / length, v[1] / length, v[2] / length];
-        } else {
-          return [0, 0, 0];
-        }
+      transpose: function(m, dst) {
+        dst = dst || new Float32Array(16);
+        dst[ 0] = m[0];
+        dst[ 1] = m[4];
+        dst[ 2] = m[8];
+        dst[ 3] = m[12];
+        dst[ 4] = m[1];
+        dst[ 5] = m[5];
+        dst[ 6] = m[9];
+        dst[ 7] = m[13];
+        dst[ 8] = m[2];
+        dst[ 9] = m[6];
+        dst[10] = m[10];
+        dst[11] = m[14];
+        dst[12] = m[3];
+        dst[13] = m[7];
+        dst[14] = m[11];
+        dst[15] = m[15];
+        return dst;
       },
       lookAt: function(cameraPosition, target, up) {
-        var zAxis = this.normalize(
-            this.subtractVectors(cameraPosition, target));
-        var xAxis = this.normalize(this.cross(up, zAxis));
-        var yAxis = this.normalize(this.cross(zAxis, xAxis));
+        const m3 = Utils.MATH.MAT3;
+        var zAxis = m3.normalize(m3.subtract(cameraPosition, target));
+        var xAxis = m3.normalize(m3.cross(up, zAxis));
+        var yAxis = m3.normalize(m3.cross(zAxis, xAxis));
 
         return [
           xAxis[0], xAxis[1], xAxis[2], 0,
