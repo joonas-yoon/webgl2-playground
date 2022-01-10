@@ -96,21 +96,17 @@ void main() {
           // variables
           var cameraAngleRadians = degToRad(0);
           var fieldOfViewRadians = degToRad(90);
-          const radius = 300; // F가 놓여질 원의 지름
-          var numberOfFs = 7;
+          var numberOfFs = 50;
+          var target = [0, 200, 300];
 
-          // set-up UI
-          Utils.Browser.UI.addSlider('fov',
-            (value) => { fieldOfViewRadians = degToRad(value); },
-            { min: 1, max: 180, step: 1, value: 90 }
+          // add UI
+          Utils.Browser.UI.addSlider('x',
+            (value) => { target[0] = value; },
+            { min: -300, max: 300, step: 0.1, value: target[0] }
           );
-          Utils.Browser.UI.addSlider('angle',
-            (value) => { cameraAngleRadians = degToRad(value); },
-            { min: 0, max: 360, step: 0.1 }
-          );
-          Utils.Browser.UI.addSlider('num of F',
-            (value) => { numberOfFs = value; },
-            { min: 1, max: 10, step: 1, value: numberOfFs }
+          Utils.Browser.UI.addSlider('z',
+            (value) => { target[2] = value; },
+            { min: -300, max: 300, step: 0.1, value: target[2] }
           );
 
           // Draw the scene.
@@ -137,8 +133,12 @@ void main() {
             const m4 = Utils.MATH.MAT4;
             var projectionMatrix = m4.perspective(fieldOfViewRadians, aspect, zNear, zFar);
 
-            var cameraMatrix = m4.rotationY(cameraAngleRadians);
-            cameraMatrix = m4.translate(cameraMatrix, 0, 0, radius * 1.5);
+            var cameraTarget = [0, -100, 0];
+            var cameraPosition = [500, 300, 500];
+            var up = [0, 1, 0];
+
+            // Compute the camera's matrix using look at.
+            var cameraMatrix = m4.lookAt(cameraPosition, cameraTarget, up);
 
             // 카메라 행렬로부터 뷰(view) 행렬 계산
             var viewMatrix = m4.inverse(cameraMatrix);
@@ -146,20 +146,37 @@ void main() {
             // 투영 동산을 뷰 공간(카메라 앞의 공간)으로 변환 (VP Matrix)
             var viewProjectionMatrix = m4.multiply(projectionMatrix, viewMatrix);
 
-            // 둥그렇게 놓여있는 'F'들 그리기
-            for (var i = 0; i < numberOfFs; ++i) {
-              var angle = i * Math.PI * 2 / numberOfFs;
-              var x = Math.cos(angle) * radius;
-              var y = -50;
-              var z = Math.sin(angle) * radius;
-
-              // F를 위한 이동 행렬 추가
-              var matrix = m4.translate(viewProjectionMatrix, x, y, z);
-
+            // target이 되는 F 렌더링
+            {
+              var matrix = m4.translate(viewProjectionMatrix, target[0], target[1], target[2]);
               gl.uniformMatrix4fv(matrixLocation, false, matrix);
-
-              // vertices
               gl.drawArrays(gl.TRIANGLES, 0, 16 * 6);
+            }
+
+            // 아래에 'F'를 배치
+            const rows = parseInt(Math.sqrt(numberOfFs));
+            const gutter = 200;
+            for (var i = 0; i < rows; ++i) {
+              // F 개수 보정
+              let cols = parseInt(numberOfFs / rows);
+              if (i === rows - 1 && rows * cols != numberOfFs) {
+                cols += numberOfFs - rows * cols;
+              }
+              for (var j = 0; j < cols; ++j) {
+                 // 카메라가 보는 곳을 중심으로 F를 사각형으로 배치
+                var x = cameraTarget[0] + i * gutter - (rows * gutter / 2);
+                var y = cameraTarget[1];
+                var z = cameraTarget[2] + j * gutter - (cols * gutter / 2);
+
+                // F를 위한 이동 행렬 추가
+                let modelMatrix = m4.lookAt([x, y, z], target, up);
+                const matrix = m4.multiply(viewProjectionMatrix, modelMatrix);
+
+                gl.uniformMatrix4fv(matrixLocation, false, matrix);
+
+                // vertices
+                gl.drawArrays(gl.TRIANGLES, 0, 16 * 6);
+              }
             }
           }
 
