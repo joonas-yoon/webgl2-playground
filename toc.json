@@ -1,72 +1,78 @@
 {
-  "list": [
-    {
-      "title": "Primitive",
-      "href": "01-primitive.html"
-    },
-    {
-      "title": "Updating Vertex",
-      "href": "02-update-vertex.html"
-    },
-    {
-      "title": "Two Buffers",
-      "href": "03-two-buffers.html"
-    },
-    {
-      "title": "Fetch/parse from a buffer",
-      "href": "04-buffers-with-stride.html"
-    },
-    {
-      "title": "Simple Interpolation",
-      "href": "05-simple-interpolation.html"
-    },
-    {
-      "title": "Simple Texture",
-      "href": "06-simple-texture.html"
-    },
-    {
-      "title": "Simple Blur",
-      "href": "07-simple-texture-blur.html"
-    },
-    {
-      "title": "Multiple Textures",
-      "href": "08-multiple-images.html"
-    },
-    {
-      "title": "2D Translation",
-      "href": "09-2d-translation.html"
-    },
-    {
-      "title": "2D Rotation",
-      "href": "10-2d-rotation.html"
-    },
-    {
-      "title": "3D Orthographic",
-      "href": "11-3d-orthographic.html"
-    },
-    {
-      "title": "3D Perspective (Fudge factor)",
-      "href": "12-3d-perspective.html"
-    },
-    {
-      "title": "3D Perspective (FOV)",
-      "href": "13-3d-perspective-fov.html"
-    },
-    {
-      "title": "Camera",
-      "href": "14-camera.html"
-    },
-    {
-      "title": "Look At",
-      "href": "15-look-at.html"
-    },
-    {
-      "title": "Directional Light",
-      "href": "16-directional-light.html"
-    },
-    {
-      "title": "Point Light",
-      "href": "17-point-light.html"
-    }
-  ]
+  "root": {
+    "Basic": [
+      {
+        "title": "Primitive",
+        "href": "01-primitive.html"
+      },
+      {
+        "title": "Updating Vertex",
+        "href": "02-update-vertex.html"
+      },
+      {
+        "title": "Two Buffers",
+        "href": "03-two-buffers.html"
+      },
+      {
+        "title": "Fetch/parse from a buffer",
+        "href": "04-buffers-with-stride.html"
+      },
+      {
+        "title": "Simple Interpolation",
+        "href": "05-simple-interpolation.html"
+      },
+      {
+        "title": "Simple Texture",
+        "href": "06-simple-texture.html"
+      },
+      {
+        "title": "Simple Blur",
+        "href": "07-simple-texture-blur.html"
+      },
+      {
+        "title": "Multiple Textures",
+        "href": "08-multiple-images.html"
+      }
+    ],
+    "2D": [
+      {
+        "title": "2D Translation",
+        "href": "09-2d-translation.html"
+      },
+      {
+        "title": "2D Rotation",
+        "href": "10-2d-rotation.html"
+      }
+    ],
+    "3D": [
+      {
+        "title": "3D Orthographic",
+        "href": "11-3d-orthographic.html"
+      },
+      {
+        "title": "3D Perspective (Fudge factor)",
+        "href": "12-3d-perspective.html"
+      },
+      {
+        "title": "3D Perspective (FOV)",
+        "href": "13-3d-perspective-fov.html"
+      },
+      {
+        "title": "Camera",
+        "href": "14-camera.html"
+      },
+      {
+        "title": "Look At",
+        "href": "15-look-at.html"
+      },
+      {
+        "title": "Directional Light",
+        "href": "16-directional-light.html"
+      },
+      {
+        "title": "Point Light",
+        "href": "17-point-light.html"
+      }
+    ]
+  }
 }

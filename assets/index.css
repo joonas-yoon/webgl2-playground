@@ -55,6 +55,16 @@ iframe#example, .code-wrapper {
   cursor: pointer;
   padding: 0.65em 1em 0.65em 1.75em;
   transition: text-shadow 150ms ease-in-out;
+  font-size: 90%;
+}
+.toc li.item.subject {
+  font-weight: bold;
+  font-size: 100%;
+  padding-left: 1.1em !important;
+  cursor: default;
+}
+.toc li.item.subject:hover {
+  text-shadow: none !important;
 }
 .toc li.item:not(.active):hover {
   text-shadow: 0 0 10px #fff, 0 0 10px #fff, 0 0 30px #e60073;
@@ -102,6 +112,7 @@ iframe#example, .code-wrapper {
   transform: translateY(0);
 }
 #code {
+  font-size: 0.95rem;
   font-family: 'Source Code Pro', 'IBM Plex Sans KR', monospace !important;
   font-weight: 300;
 }

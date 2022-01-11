@@ -10,7 +10,8 @@ async function setup() {
   const btnPrev = document.getElementById('btn-prev');
   const btnNext = document.getElementById('btn-next');
 
-  const {list} = await fetch(BASE_URL + 'toc.json').then(res => res.json());
+  const { root } = await fetch(BASE_URL + 'toc.json').then(res => res.json());
+  const list = Object.keys(root).map(key => root[key]).reduce((p, c) => [...p].concat(c));
   const items = [];
   let currentIdx = 0;
   const param = getParam('v');
@@ -19,23 +20,30 @@ async function setup() {
   ul.innerHTML = '';
 
   // add to UI
-  for (let index in list) {
-    index = Number(index);
-    const {title, href} = list[index];
-    const li = document.createElement('li');
-    li.setAttribute('class', 'item');
-    li.setAttribute('href', href);
-    li.setAttribute('title', title);
-    li.addEventListener('click', (evt) => {
-      evt.preventDefault();
-      onSelectItem(li);
-    });
-    li.innerText = title;
-    ul.appendChild(li);
-    if (param == title) {
-      currentIdx = index;
+  let index = 0;
+  for (const key of Object.keys(root)) {
+    const subject = document.createElement('li');
+    subject.setAttribute('class', 'item subject');
+    subject.innerText = key;
+    ul.appendChild(subject);
+    console.log(root[key]);
+    for (const {title, href} of root[key]) {
+      const li = document.createElement('li');
+      li.setAttribute('class', 'item');
+      li.setAttribute('href', href);
+      li.setAttribute('title', title);
+      li.addEventListener('click', (evt) => {
+        evt.preventDefault();
+        onSelectItem(li);
+      });
+      li.innerText = title;
+      ul.appendChild(li);
+      if (param == title) {
+        currentIdx = index;
+      }
+      index += 1;
+      items.push(li);
     }
-    items.push(li);
   }
 
   // set-up Prism
