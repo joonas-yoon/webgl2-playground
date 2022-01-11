@@ -17,10 +17,10 @@
     <script type="text/javascript" src="assets/index.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/prism.min.js" integrity="sha512-hpZ5pDCF2bRCweL5WoA0/N1elet1KYL5mx3LP555Eg/0ZguaHawxNvEjF6O3rufAChs16HVNhEc6blF/rZoowQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   </head>
-  <body onload="setup()">
+  <body>
     <div class="sidebar">
       <h1 class="header">Examples</h1>
-      <ul id="toc">
+      <ul class="toc" >
         <li id="btn-prev" class="prev">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
             <path d="M16.67 0l2.83 2.829-9.339 9.175 9.339 9.167-2.83 2.829-12.17-11.996z"/>
@@ -31,6 +31,8 @@
             <path d="M7.33 24l-2.83-2.829 9.339-9.175-9.339-9.167 2.83-2.829 12.17 11.996z"></path>
           </svg>
         </li>
+      </ul>
+      <ul class="toc" id="toc">
       </ul>
       <div class="buttons">
         <button id="btn-code" class="btn btn-block" data-show-result="true">View code</button>

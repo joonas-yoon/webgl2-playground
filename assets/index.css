@@ -9,14 +9,14 @@ iframe#example, .code-wrapper {
   border: 0;
 }
 .sidebar {
-  width: 280px;
   background: #333;
   color: white;
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
-  height: 100%;
+  height: 100vh;
   box-shadow: inset -1em 0px 1em rgba(0, 0, 0, 0.1);
+  overflow-y: auto;
 }
 .sidebar .header {
   margin-top: 0.5em;
@@ -24,36 +24,42 @@ iframe#example, .code-wrapper {
   padding-left: 0.5em;
 }
 .sidebar .buttons {
-  width: 100%;
   height: 3em;
   display: flex;
-  position: absolute;
+  position: fixed;
   background: #333;
   bottom: 0;
   text-align: center;
   justify-content: center;
 }
-#toc {
+.sidebar,
+.sidebar .buttons {
+  width: 280px;
+}
+.toc {
   padding: 0;
   margin: 0;
 }
-#toc li {
+#toc {
+  padding-bottom: 4em;
+}
+.toc li {
   list-style: none;
   margin: 0;
 }
-#toc li.next, #toc li.prev {
+.toc li.next, .toc li.prev {
   display: none;
   cursor: pointer;
 }
-#toc li.item {
+.toc li.item {
   cursor: pointer;
   padding: 0.65em 1em 0.65em 1.75em;
   transition: text-shadow 150ms ease-in-out;
 }
-#toc li.item:not(.active):hover {
+.toc li.item:not(.active):hover {
   text-shadow: 0 0 10px #fff, 0 0 10px #fff, 0 0 30px #e60073;
 }
-#toc li.item.active {
+.toc li.item.active {
   background: #fefefe;
   color: #111;
   font-weight: bold;
@@ -121,37 +127,39 @@ pre[class*=language-]::selection {
     width: 100%;
     height: fit-content;
     z-index: 10;
+    overflow: initial;
   }
   .sidebar .header {
     display: none;
   }
   .sidebar .buttons {
     position: relative;
+    width: 100%;
   }
-  #toc {
+  .toc {
     padding: 0;
     margin: 0;
     box-shadow: 0 0 1em rgba(0, 0, 0, 0.15);
   }
-  #toc .item:not(.active) {
+  .toc .item:not(.active) {
     display: none;
   }
-  #toc .item {
+  .toc .item {
     text-align: center;
   }
-  #toc li.next, #toc li.prev {
+  .toc li.next, .toc li.prev {
     position: absolute;
     padding: 12px;
     color: #000;
     font-size: 1em;
   }
-  #toc li.next.show, #toc li.prev.show {
+  .toc li.next.show, .toc li.prev.show {
     display: block;
   }
-  #toc li.next {
+  .toc li.next {
     right: 0;
   }
-  #toc li.prev {
+  .toc li.prev {
     left: 0;
   }
 }

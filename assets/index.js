@@ -1,5 +1,5 @@
-const URL = location.origin + location.pathname;
-const BASE_URL = URL.substring(0, URL.lastIndexOf('/')) + '/';
+const HOST = location.origin + location.pathname;
+const BASE_URL = HOST.substring(0, HOST.lastIndexOf('/')) + '/';
 
 async function setup() {
   const ul = document.getElementById("toc");
@@ -14,7 +14,11 @@ async function setup() {
   const items = [];
   let currentIdx = 0;
   const param = getParam('v');
-  
+
+  // clear UI
+  ul.innerHTML = '';
+
+  // add to UI
   for (let index in list) {
     index = Number(index);
     const {title, href} = list[index];
@@ -54,7 +58,7 @@ async function setup() {
     }
   }
 
-  function onSelectItem(item) {
+  function onSelectItem(item, byClicked) {
     if (item.className.indexOf('active') !== -1) {
       return;
     }
@@ -65,13 +69,16 @@ async function setup() {
       res.text().then(setCodeText);
     });
     activateItem(item);
-    // push history
-    const title = item.getAttribute('title');
-    var refreshURL = window.location.protocol + "//" + window.location.host + window.location.pathname;
-    refreshURL += '?v=' + encodeURI(title);
-    window.history.pushState({ path: refreshURL }, '', refreshURL);
     // change title
-    document.title = 'WebGL2 - ' + title;
+    const title = item.getAttribute('title');
+    const docTitle = 'WebGL2 - ' + title;
+    document.title = title;
+    // push history
+    if (byClicked) {
+      var refreshURL = window.location.protocol + "//" + window.location.host + window.location.pathname;
+      refreshURL += '?v=' + encodeURI(title);
+      window.history.pushState({ path: refreshURL, index: currentIdx }, docTitle, refreshURL);
+    }
   }
 
   // button to show code or result
@@ -91,7 +98,7 @@ async function setup() {
     evt.preventDefault();
     if (currentIdx - 1 >= 0) {
       currentIdx = currentIdx - 1;
-      onSelectItem(items[currentIdx]);
+      onSelectItem(items[currentIdx], true);
       refreshArrowButton();
     }
   });
@@ -100,7 +107,7 @@ async function setup() {
     evt.preventDefault();
     if (currentIdx + 1 < items.length) {
       currentIdx = currentIdx + 1;
-      onSelectItem(items[currentIdx]);
+      onSelectItem(items[currentIdx], true);
       refreshArrowButton();
     }
   });
@@ -120,18 +127,37 @@ async function setup() {
   }
 
   function getParam(parameterName) {
-    var result = null, tmp = [];
-    location.search
-        .substr(1)
-        .split("&")
-        .forEach(function (item) {
-          tmp = item.split("=");
-          if (tmp[0] === parameterName) result = decodeURIComponent(tmp[1]);
-        });
-    return result;
+    return parseParam(location.href, parameterName);
+  }
+
+  function parseParam(url, paramName) {
+    try {
+      return new URL(url).searchParams.get(paramName);
+    } catch (err) {
+      return '';
+    }
+  }
+
+  function popHistory(evt) {
+    const v = parseParam(evt.state.path, 'v');
+    console.log(v);
+    for (const i of items) {
+      if (i.getAttribute('title') == v) {
+        onSelectItem(i);
+        refreshArrowButton();
+        return;
+      }
+    }
+    onSelectItem(items[0]);
+    refreshArrowButton();
   }
 
   // emit first event as default
   onSelectItem(items[currentIdx]);
   refreshArrowButton();
+
+  window.onpopstate = popHistory;
 }
+
+// when page loaded
+window.onload = setup;
